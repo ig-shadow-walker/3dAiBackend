@@ -111,7 +111,7 @@ class Hunyuan3DV21ImageToMeshAdapterCommon(ImageToMeshModel):
 
                 logger.info("Loading shape generation pipeline...")
                 self.pipeline_shapegen = (
-                    Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(self.model_path)
+                    Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(str(self.model_path))
                 )
                 loaded_models["shapegen"] = self.pipeline_shapegen
 
@@ -158,6 +158,8 @@ class Hunyuan3DV21ImageToMeshAdapterCommon(ImageToMeshModel):
             return loaded_models
 
         except Exception as e:
+            import traceback 
+            traceback.print_exc()
             logger.error(f"Failed to load Hunyuan3D 2.1 models: {str(e)}")
             raise Exception(f"Failed to load Hunyuan3D 2.1 models: {str(e)}")
 

@@ -7,10 +7,15 @@ pip install pillow imageio imageio-ffmpeg tqdm easydict opencv-python-headless s
 pip install git+https://github.com/EasternJournalist/utils3d.git@9a4eb15e4021b67b12c460c7057d642626897ec8
 pip install https://github.com/bdashore3/flash-attention/releases/download/v2.7.1.post1/flash_attn-2.7.1.post1+cu124torch2.5.1cxx11abiFALSE-cp310-cp310-win_amd64.whl
 pip install kaolin -f https://nvidia-kaolin.s3.us-east-2.amazonaws.com/torch-2.5.1_cu124.html
-pip install https://github.com/iiiytn1k/sd-webui-some-stuff/releases/download/diffoctreerast/nvdiffrast-0.3.3-py3-none-any.whl
-pip install https://github.com/iiiytn1k/sd-webui-some-stuff/releases/download/diffoctreerast/diffoctreerast-0.0.0-cp310-cp310-win_amd64.whl
-pip install https://github.com/iiiytn1k/sd-webui-some-stuff/releases/download/diffoctreerast/diff_gaussian_rasterization-0.0.0-cp310-cp310-win_amd64.whl
-pip install https://github.com/iiiytn1k/sd-webui-some-stuff/releases/download/diffoctreerast/vox2seq-0.0.0-cp310-cp310-win_amd64.whl
+
+mkdir tmp 
+git clone https://github.com/NVlabs/nvdiffrast.git ./tmp/extensions/nvdiffrast
+pip install ./tmp/extensions/nvdiffrast
+git clone --recurse-submodules https://github.com/JeffreyXiang/diffoctreerast.git ./tmp/extensions/diffoctreerast
+pip install ./tmp/extensions/diffoctreerast
+git clone https://github.com/autonomousvision/mip-splatting.git ./tmp/extensions/mip-splatting
+pip install ./tmp/extensions/mip-splatting/submodules/diff-gaussian-rasterization/
+
 pip install spconv-cu120
 pip install gradio==4.44.1 gradio_litmodel3d==0.0.1
 

@@ -26,7 +26,6 @@ echo Installing TRELLIS Dependencies
 echo ========================================
 REM we startup with the environment of trellis
 echo [INFO] Changing directory to thirdparty\TRELLIS...
-cd thirdparty\TRELLIS
 echo [INFO] Running TRELLIS setup script...
 REM Note: Windows doesn't have direct equivalent of bash sourcing, so we'll run pip commands directly
 @REM The instruction is from https://github.com/microsoft/TRELLIS/issues/3
@@ -246,6 +245,9 @@ if %ERRORLEVEL% equ 0 (
     echo [ERROR] Failed to install huggingface_hub
     exit /b 1
 )
+
+@REM some misc 
+call pip install scikit-learn triton-windows==3.1.0.post17
 
 echo.
 echo ========================================

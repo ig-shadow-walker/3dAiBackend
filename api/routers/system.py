@@ -707,6 +707,8 @@ async def get_job_status(job_id: str, request: Request):
     except HTTPException:
         raise
     except Exception as e:
+        import traceback 
+        traceback.print_exc()
         raise HTTPException(
             status_code=500, detail=f"Error retrieving job status: {str(e)}"
         )

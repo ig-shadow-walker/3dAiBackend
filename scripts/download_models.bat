@@ -6,7 +6,7 @@ REM Usage: download_models.bat [OPTIONS]
 REM 
 REM Available models:
 REM   partfield, hunyuan2, hunyuan2mini, hunyuan21, trellis, trellis-text, 
-REM   holopart, unirig, partpacker, misc, all
+REM   holopart, unirig, partpacker, partuv, fastmesh, misc, all
 REM
 REM Options:
 REM   -h, --help              Show this help message
@@ -61,6 +61,8 @@ echo     trellis-text  - TRELLIS text-xlarge model (optional)
 echo     holopart      - HoloPart model for part completion
 echo     unirig        - UniRig model for auto-rigging
 echo     partpacker    - PartPacker model
+echo     partuv        - PartUV model
+echo     fastmesh      - FastMesh model
 echo     misc          - Miscellaneous models (RealESRGAN, DINOv2)
 echo     all           - Download all models
 echo.
@@ -84,6 +86,8 @@ echo   - trellis-text
 echo   - holopart
 echo   - unirig
 echo   - partpacker
+echo   - partuv
+echo   - fastmesh
 echo   - misc
 goto :eof
 
@@ -430,6 +434,76 @@ if %ERRORLEVEL% equ 0 (
 )
 exit /b 0
 
+:download_fastmesh
+call :print_info "========================================"
+call :print_info "Downloading FastMesh Model"
+call :print_info "========================================"
+
+set model_dir_v1k=pretrained\FastMesh-V1K
+set model_dir_v4k=pretrained\FastMesh-V4K
+
+if /I "%FORCE_DOWNLOAD%"=="false" (
+    call :verify_directory "%model_dir_v1k%" 3
+    if !ERRORLEVEL! equ 0 (
+        call :print_info "FastMesh v1k model already exists and verified"
+        goto :download_fastmesh_v4k
+    )
+)
+
+md "%model_dir_v1k%" 2>nul
+call :print_info "Downloading FastMesh v1k model..."
+call huggingface-cli download "WopperSet/FastMesh-V1K" --local-dir "%model_dir_v1k%"
+if %ERRORLEVEL% equ 0 (
+    call :print_success "FastMesh v1k model downloaded successfully"
+) else (
+    call :print_error "Failed to download FastMesh v1k model"
+    exit /b 1
+)
+
+:download_fastmesh_v4k
+if /I "%FORCE_DOWNLOAD%"=="false" (
+    call :verify_directory "%model_dir_v4k%" 3
+    if !ERRORLEVEL! equ 0 (
+        call :print_info "FastMesh v4k model already exists and verified"
+        exit /b 0
+    )
+)
+
+md "%model_dir_v4k%" 2>nul
+call :print_info "Downloading FastMesh v4k model..."
+call huggingface-cli download "WopperSet/FastMesh-V4K" --local-dir "%model_dir_v4k%"
+if %ERRORLEVEL% equ 0 (
+    call :print_success "FastMesh v4k model downloaded successfully"
+) else (
+    call :print_error "Failed to download FastMesh v4k model"
+    exit /b 1
+)
+exit /b 0
+
+:download_partuv
+call :print_info "========================================"
+call :print_info "Downloading PartUV Model"
+call :print_info "========================================"
+
+set partfield_model_path=pretrained\PartUV\model_objaverse.ckpt
+if /I "%FORCE_DOWNLOAD%"=="false" (
+    call :verify_file "%partfield_model_path%" 50000000
+    if !ERRORLEVEL! equ 0 (
+        call :print_info "PartUV model already exists and verified"
+        exit /b 0
+    )
+)
+
+md pretrained\PartUV 2>nul
+call :download_with_verify "https://huggingface.co/mikaelaangel/partfield-ckpt/resolve/main/model_objaverse.ckpt" "%partfield_model_path%" "PartUV model"
+if %ERRORLEVEL% equ 0 (
+    call :print_success "PartUV model downloaded successfully"
+) else (
+    call :print_error "Failed to download PartUV model"
+    exit /b 1
+)
+exit /b 0
+
 :download_misc
 call :print_info "========================================"
 call :print_info "Downloading Miscellaneous Models"
@@ -513,6 +587,18 @@ call :print_info "Checking PartPacker..."
 call :verify_directory "pretrained\PartPacker" 3
 if !ERRORLEVEL! neq 0 set all_verified=false
 
+call :print_info "Checking PartUV..."
+call :verify_directory "pretrained\PartUV" 1
+if !ERRORLEVEL! neq 0 set all_verified=false
+
+call :print_info "Checking FastMesh v1k..."
+call :verify_directory "pretrained\FastMesh-V1K" 3
+if !ERRORLEVEL! neq 0 set all_verified=false
+
+call :print_info "Checking FastMesh v4k..."
+call :verify_directory "pretrained\FastMesh-V4K" 3
+if !ERRORLEVEL! neq 0 set all_verified=false
+
 call :print_info "Checking miscellaneous models..."
 call :verify_file "pretrained\misc\RealESRGAN_x4plus.pth" 50000000
 if !ERRORLEVEL! neq 0 set all_verified=false
@@ -566,6 +652,8 @@ for %%m in (%models_list%) do (
     if /I "%%m"=="holopart" call :download_holopart
     if /I "%%m"=="unirig" call :download_unirig
     if /I "%%m"=="partpacker" call :download_partpacker
+    if /I "%%m"=="partuv" call :download_partuv
+    if /I "%%m"=="fastmesh" call :download_fastmesh
     if /I "%%m"=="misc" call :download_misc
     if /I "%%m"=="all" (
         call :download_partfield
@@ -577,6 +665,8 @@ for %%m in (%models_list%) do (
         call :download_holopart
         call :download_unirig
         call :download_partpacker
+        call :download_partuv
+        call :download_fastmesh
         call :download_misc
     )
 )

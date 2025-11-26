@@ -859,12 +859,10 @@ All API responses follow a consistent format:
     "fastmesh_v1k_retopology": {
       "description": "FastMesh V1K - Generates meshes with ~1000 vertices",
       "target_vertices": 1000,
-      "recommended_for": "Game assets, mobile applications"
     },
     "fastmesh_v4k_retopology": {
       "description": "FastMesh V4K - Generates meshes with ~4000 vertices",
       "target_vertices": 4000,
-      "recommended_for": "High-quality assets, detailed models"
     }
   }
 }

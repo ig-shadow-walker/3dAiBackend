@@ -61,7 +61,10 @@ class MeshRetopologyRequest(BaseModel):
         None, description="File ID from upload endpoint"
     )
     target_vertex_count: Optional[int] = Field(
-        None, description="Target number of vertices", ge=100, le=100000
+        None, description="Target number of vertices", ge=100, le=20000
+    )
+    poly_type: Optional[str] = Field(
+        "tri", description="Specification of the polygon type"
     )
     output_format: str = Field("obj", description="Output format for retopologized mesh")
     seed: Optional[int] = Field(None, description="Random seed for reproducibility")
@@ -76,6 +79,14 @@ class MeshRetopologyRequest(BaseModel):
         allowed_formats = ["obj", "glb", "ply"]
         if v not in allowed_formats:
             raise ValueError(f"Output format must be one of: {allowed_formats}")
+        return v
+
+    @field_validator("poly_type")
+    @classmethod
+    def validate_poly_type(cls, v):
+        allowed_poly_types = ["tri", "quad"]
+        if v not in allowed_poly_types:
+            raise ValueError(f"Polygon type must be one of: {allowed_poly_types}")
         return v
 
     @field_validator("mesh_file_id")
@@ -220,19 +231,16 @@ async def get_available_models(
                 models_details[model_id] = {
                     "description": "FastMesh V1K - Generates meshes with ~1000 vertices",
                     "target_vertices": 1000,
-                    "recommended_for": "Game assets, mobile applications",
                 }
             elif "v4k" in model_id.lower():
                 models_details[model_id] = {
                     "description": "FastMesh V4K - Generates meshes with ~4000 vertices",
                     "target_vertices": 4000,
-                    "recommended_for": "High-quality assets, detailed models",
                 }
             else:
                 models_details[model_id] = {
                     "description": "Mesh retopology model",
                     "target_vertices": None,
-                    "recommended_for": "General purpose",
                 }
 
         return {

@@ -11,7 +11,7 @@ import os
 import sys
 import warnings
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 import numpy as np
 import torch
@@ -192,6 +192,7 @@ class FastMeshRunner:
         self,
         mesh_path: Union[str, Path, trimesh.Trimesh],
         seed: Optional[int] = None,
+        poly_type: Optional[Literal["tri", "quad"]] = "tri",
         batch_size: int = 1,
     ) -> Dict:
         """

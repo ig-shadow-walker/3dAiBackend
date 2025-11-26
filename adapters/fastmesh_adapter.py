@@ -115,6 +115,7 @@ class FastMeshRetopologyAdapter(MeshRetopologyModel):
                 - output_format: Output format (default: "obj")
                 - seed: Random seed for reproducibility (optional)
                 - target_vertex_count: Target vertex count (optional, overrides variant default)
+                - poly_type: the type of polygon in the input mesh, "tri" or "quad", defaults to "tri"
 
         Returns:
             Dictionary with retopology results
@@ -130,6 +131,7 @@ class FastMeshRetopologyAdapter(MeshRetopologyModel):
 
             # Extract parameters
             output_format = inputs.get("output_format", "obj")
+            poly_type = inputs.get("poly_type", "tri")
             seed = inputs.get("seed", None)
 
             if output_format not in ["obj", "glb", "ply"]:
@@ -145,7 +147,7 @@ class FastMeshRetopologyAdapter(MeshRetopologyModel):
 
             # Run FastMesh retopology
             generation_result = self.fastmesh_runner.generate_from_mesh(
-                str(mesh_path), seed=seed
+                str(mesh_path), seed=seed, poly_type=poly_type
             )
 
             if generation_result is None or "mesh" not in generation_result:
@@ -162,6 +164,8 @@ class FastMeshRetopologyAdapter(MeshRetopologyModel):
             retopo_mesh = generation_result["mesh"]
             if retopo_mesh is not None:
                 self.mesh_processor.save_mesh(retopo_mesh, output_path)
+                if poly_type == "quad":
+                    self.mesh_processor.tri2quad(output_path)
             else:
                 raise Exception("No mesh generated")
 
@@ -176,6 +180,7 @@ class FastMeshRetopologyAdapter(MeshRetopologyModel):
                 "variant": self.variant,
                 "input_pc_num": self.input_pc_num,
                 "seed": seed,
+                "poly_type": poly_type,
                 "reduction_ratio": {
                     "vertices": output_stats["vertex_count"]
                     / max(original_stats["vertex_count"], 1),

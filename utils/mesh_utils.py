@@ -227,3 +227,12 @@ class MeshProcessor:
         except Exception as e:
             logger.error(f"Failed to normalize mesh: {str(e)}")
             return mesh
+
+    def tri2quad(mesh_path: str):
+        from meshiki import Mesh 
+        mesh = Mesh.load(mesh_path, verbose=False)
+        logger.info("Converting triangles to quads and save in-place...")
+        mesh.quadrangulate()
+        mesh.export(mesh_path)
+
+        

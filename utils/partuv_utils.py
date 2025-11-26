@@ -278,7 +278,8 @@ class PartUVRunner:
 
             # Prepare output dictionary
             output = {
-                "output_mesh_path": str(final_mesh_path),
+                # "output_mesh_path": str(final_mesh_path),
+                "output_mesh_path": packed_mesh_path, 
                 "packed_mesh_path": packed_mesh_path,
                 "individual_parts_dir": str(individual_parts_dir)
                 if save_individual_parts

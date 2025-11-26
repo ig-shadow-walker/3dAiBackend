@@ -35,7 +35,7 @@ VERIFY_ONLY=false
 FORCE_DOWNLOAD=false
 
 # Available models
-AVAILABLE_MODELS=("partfield" "hunyuan2" "hunyuan2mini" "hunyuan21" "trellis" "trellis-text" "holopart" "unirig" "partpacker" "misc" "all")
+AVAILABLE_MODELS=("partfield" "hunyuan2" "hunyuan2mini" "hunyuan21" "trellis" "trellis-text" "holopart" "unirig" "partpacker" "partuv" "fastmesh" "misc" "all")
 
 show_help() {
     cat << EOF
@@ -60,6 +60,8 @@ Available models:
     holopart      - HoloPart model for part completion
     unirig        - UniRig model for auto-rigging
     partpacker    - PartPacker model
+    partuv        - PartUV model
+    fastmesh      - FastMesh model
     misc          - Miscellaneous models (RealESRGAN, DINOv2)
     all           - Download all models
 
@@ -390,6 +392,64 @@ download_partpacker() {
     fi
 }
 
+# Function to download FastMesh model
+download_fastmesh() {
+    print_info "========================================"
+    print_info "Downloading FastMesh Model"
+    print_info "========================================"
+    
+    local model_dir_v1k="pretrained/FastMesh-V1K"
+    local model_dir_v4k="pretrained/FastMesh-V4K"
+    
+    if [ "$FORCE_DOWNLOAD" = false ] && verify_directory "$model_dir_v1k" 3; then
+        print_info "FastMesh v1k model already exists and verified"
+        return 0
+    fi
+    
+    mkdir -p "$model_dir_v1k"
+    print_info "Downloading FastMesh v1k model..."
+    if huggingface-cli download  "WopperSet/FastMesh-V1K" --local-dir "$model_dir_v1k"; then
+        print_success "FastMesh v1k model downloaded successfully"
+    else
+        print_error "Failed to download FastMeshv1k model"
+        return 1
+    fi
+
+    if [ "$FORCE_DOWNLOAD" = false ] && verify_directory "$model_dir_v4k" 3; then
+        print_info "FastMesh v4k model already exists and verified"
+        return 0
+    fi
+    
+    mkdir -p "$model_dir_v4k"
+    print_info "Downloading FastMesh v4k model..."
+    if huggingface-cli download  "WopperSet/FastMesh-V4K" --local-dir "$model_dir_v4k"; then
+        print_success "FastMesh v4k model downloaded successfully"
+    else
+        print_error "Failed to download FastMeshv4k model"
+        return 1
+    fi
+}
+
+# Function to download PartUV models 
+download_partuv() {
+    print_info "========================================"
+    print_info "Downloading PartUV Model"
+    print_info "========================================"
+
+    local partfield_model_path="pretrained/PartUV/model_objaverse.ckpt"
+    if [ "$FORCE_DOWNLOAD" = false ] && verify_file "$partfield_model_path" 50000000; then
+        print_info "PartUV model already exists and verified"
+        return 0
+    else
+        mkdir -p pretrained/PartUV
+        download_with_verify \
+            "https://huggingface.co/mikaelaangel/partfield-ckpt/resolve/main/model_objaverse.ckpt" \
+            "$partfield_model_path" \
+            "PartUV model"
+        print_success "PartUV model downloaded successfully"
+    fi
+}
+
 # Function to download miscellaneous models
 download_misc() {
     print_info "========================================"
@@ -459,6 +519,13 @@ verify_all_models() {
     
     print_info "Checking PartPacker..."
     verify_directory "pretrained/PartPacker" 3 || all_verified=false
+
+    print_info "Checking PartUV..."
+    verify_directory "pretrained/PartUV" 1 || all_verified=false
+    print_info "Checking FastMesh v1k..."
+    verify_directory "pretrained/FastMesh-V1K" 3 || all_verified=false
+    print_info "Checking FastMesh v4k..."
+    verify_directory "pretrained/FastMesh-V4K" 3 || all_verified=false
     
     print_info "Checking miscellaneous models..."
     verify_file "pretrained/misc/RealESRGAN_x4plus.pth" 50000000 || all_verified=false
@@ -528,6 +595,12 @@ for model in "${MODELS_ARRAY[@]}"; do
         "partpacker")
             download_partpacker
             ;;
+        "partuv")
+            download_partuv
+            ;;
+        "fastmesh")
+            download_fastmesh
+            ;;
         "misc")
             download_misc
             ;;
@@ -541,6 +614,8 @@ for model in "${MODELS_ARRAY[@]}"; do
             download_holopart
             download_unirig
             download_partpacker
+            download_partuv
+            download_fastmesh
             download_misc
             ;;
         *)

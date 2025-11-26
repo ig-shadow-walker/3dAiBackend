@@ -88,7 +88,8 @@ class MeshUVUnwrappingRequest(BaseModel):
     @field_validator("pack_method")
     @classmethod
     def validate_pack_method(cls, v):
-        allowed_methods = ["blender", "uvpackmaster", "none"]
+        # currently uvpackmaster is not installed, if needed, install it according to the official website 
+        allowed_methods = ["blender"]
         if v not in allowed_methods:
             raise ValueError(f"Pack method must be one of: {allowed_methods}")
         return v
@@ -225,20 +226,14 @@ async def get_pack_methods():
         "pack_methods": {
             "blender": {
                 "description": "Default packing method using bpy",
-                "requirements": "bpy (installed automatically)",
-                "speed": "fast",
             },
-            "uvpackmaster": {
-                "description": "Professional packing with part grouping support",
-                "requirements": "UVPackMaster add-on (paid, requires separate installation)",
-                "speed": "medium",
-                "features": ["Part-based packing", "Multi-atlas support"],
-            },
-            "none": {
-                "description": "No packing - outputs unwrapped UV charts without arrangement",
-                "requirements": "None",
-                "speed": "fastest",
-            },
+            # NOT INSTALLED 
+            # "uvpackmaster": {
+            #     "description": "Professional packing with part grouping support",
+            # },
+            # "none": {
+            #     "description": "No packing - outputs unwrapped UV charts without arrangement",
+            # },
         }
     }
 
@@ -266,20 +261,10 @@ async def get_available_models(
             if "partuv" in model_id.lower():
                 models_details[model_id] = {
                     "description": "PartUV - Part-based UV unwrapping with minimal distortion",
-                    "method": "Hierarchical part-based unwrapping",
-                    "features": [
-                        "Automatic part segmentation",
-                        "Distortion minimization",
-                        "Multiple packing options",
-                    ],
-                    "recommended_for": "General purpose, production assets",
                 }
             else:
                 models_details[model_id] = {
                     "description": "UV unwrapping model",
-                    "method": "Unknown",
-                    "features": [],
-                    "recommended_for": "General purpose",
                 }
 
         return {

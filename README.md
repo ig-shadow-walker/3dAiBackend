@@ -9,10 +9,10 @@
 [![GitHub Stars](https://img.shields.io/github/stars/FishWoWater/3DAIGC-API.svg)](https://github.com/FishWoWater/3DAIGC-API/stargazers)
 [![Code Size](https://img.shields.io/github/repo-size/FishWoWater/3DAIGC-API.svg)](https://github.com/FishWoWater/3DAIGC-API)
 
-A FastAPI backend server framework for 3D generative AI models, with all of them ported to API-ready inference services, powered with GPU resource management and VRAM-aware scheduling.
-> This project is still under active development and may contain breaking changes.
+A **self-hosted** scalable FastAPI backend server framework for 3D generative AI models, with all of them ported to API-ready inference services, powered with GPU resource management and VRAM-aware scheduling.
+> *Note:* This project is still under active development and may contain breaking changes.
 
-## 🏗️ System Architecture
+## System Architecture
 The system provides a unified API gateway for multiple 3D AI models with automatic resource management:
 
 ```
@@ -59,7 +59,7 @@ The system provides a unified API gateway for multiple 3D AI models with automat
 - **Format Flexibility**: Support for multiple input/output formats (GLB, OBJ, FBX)
 - **RESTful API**: Clean, well-documented REST endpoints with OpenAPI specification
 
-## 🤖 Supported Models & Features
+## Supported Models & Features
 The VRAM requirement is from the pytest results, tested on a single 4090 GPU.
 ### Text/Image to 3D Mesh Generation
 | Model | Input | Output | VRAM | Features |
@@ -93,7 +93,18 @@ The VRAM requirement is from the pytest results, tested on a single 4090 GPU.
 | **[Hunyuan3D-2.0 Paint](https://github.com/Tencent-Hunyuan/Hunyuan3D-2)** | Mesh + Image   | Textured Mesh | 11GB | Medium-quality texture synthesis |
 | **[Hunyuan3D-2.1 Paint](https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1)** | Mesh + Image   | Textured Mesh | 12GB | High-quality texture synthesis, PBR |
 
-## 🚀 Quick Start
+### Mesh Re-topology (Auto Regressive Mesh Generation)
+| Model | Input | Output | VRAM | Features |
+|-------|-------|--------|------|----------|
+| **[FastMesh](https://github.com/jhkim0759/FastMesh)** | Dense Mesh |  Low Poly Mesh| 16G/24(1k/4k) | **Fast** Artist Mesh Generation |
+
+### Mesh UV Unwrapping 
+| Model | Input | Output | VRAM | Features |
+|-------|-------|--------|------|----------|
+| **[PartUV](https://github.com/EricWang12/PartUV/)** | Mesh | Mesh w/ UV | 7GB | Part-Based UV Unwrapping |
+
+
+## Quick Start
 
 ### Prerequisites
 - Python 3.10+
@@ -161,8 +172,11 @@ Once the server is running, visit:
 - **Interactive API docs**: `http://localhost:7842/docs`
 - **ReDoc documentation**: `http://localhost:7842/redoc`
 
-## 📖 Usage Examples
+## Usage Examples
 ### Basics
+<details>
+<summary>Querying the Basic System Status</summary>
+
 ```bash 
 # check system status 
 curl -X GET "http://localhost:7842/api/v1/system/status/"
@@ -171,9 +185,11 @@ curl -X GET "http://localhost:7842/api/v1/system/features"
 # check available models 
 curl -X GET "http://localhost:7842/api/v1/system/models"
 ```
+</details>
+<br>
 <details>
 <summary>Example Response Querying the Features</summary>
-
+```json
 {
   "features":[
     {"name":"text_to_textured_mesh",
@@ -211,9 +227,13 @@ curl -X GET "http://localhost:7842/api/v1/system/models"
   ],
   "total_features":8
 }
+```
 </details>
 
 ### Text to 3D Mesh
+<details>
+<summary>Text to 3D Mesh Example</summary>
+
 ```bash
 # 1. Submit job 
 curl -X POST "http://localhost:7842/api/v1/mesh-generation/text-to-textured-mesh" \
@@ -228,7 +248,12 @@ curl -X POST "http://localhost:7842/api/v1/mesh-generation/text-to-textured-mesh
 curl "http://localhost:7842/api/v1/system/jobs/job_789012"
 ```
 
+</details>
+
 ### Image to 3D Mesh
+<details>
+<summary> Image to 3D Mesh Example </summary>
+
 ```bash
 # 1. Upload image file
 curl -X POST "http://localhost:7842/api/v1/file-upload/image" \
@@ -244,10 +269,13 @@ curl -X POST "http://localhost:7842/api/v1/mesh-generation/image-to-textured-mes
     "output_format": "glb",
     "model_preference": "trellis_image_to_textured_mesh"
   }'
-
 ```
+</details>
 
 ### Mesh Segmentation
+<details>
+<summary> Mesh Segmentation Example </summary>
+
 ```bash
 # 1. Upload mesh file
 curl -X POST "http://localhost:7842/api/v1/file-upload/mesh" \
@@ -266,8 +294,13 @@ curl -X POST "http://localhost:7842/api/v1/mesh-segmentation/segment-mesh" \
 curl "http://localhost:7842/api/v1/system/jobs/{job_id}/download" \
   -o "segmented.glb"
 ```
+</details>
 
 ### Auto-Rigging
+
+<details>
+<summary> Auto Rigging Example </summary>
+
 ```bash
 # 1. Upload mesh file
 curl -X POST "http://localhost:7842/api/v1/file-upload/mesh" \
@@ -286,19 +319,109 @@ curl -X POST "http://localhost:7842/api/v1/auto-rigging/generate-rig" \
 curl "http://localhost:7842/api/v1/system/jobs/{job_id}/download" \
   -o "rigged_character.fbx"
 ```
+</details>
+
+### Mesh Retopology
+
+<details>
+<summary> Mesh Retopology Example </summary>
+
+```bash
+# 1. Upload mesh file
+curl -X POST "http://localhost:7842/api/v1/file-upload/mesh" \
+  -F "file=@/path/to/high_res_mesh.obj"
+# Response: {"file_id": "mesh_abc123", ...}
+
+# 2. Retopologize mesh (V1K variant for ~1000 vertices)
+curl -X POST "http://localhost:7842/api/v1/mesh-retopology/retopologize-mesh" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mesh_file_id": "mesh_abc123",
+    "model_preference": "fastmesh_v1k_retopology",
+    "output_format": "obj",
+    "seed": 42
+  }'
+# Response: {"job_id": "retopo_job_123", ...}
+
+# Alternative: Use V4K variant for ~4000 vertices
+curl -X POST "http://localhost:7842/api/v1/mesh-retopology/retopologize-mesh" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mesh_file_id": "mesh_abc123",
+    "model_preference": "fastmesh_v4k_retopology",
+    "output_format": "obj"
+  }'
+
+# 3. Download retopologized mesh
+curl "http://localhost:7842/api/v1/system/jobs/{job_id}/download" \
+  -o "retopo_mesh.obj"
+
+# 4. Check available retopology models
+curl "http://localhost:7842/api/v1/mesh-retopology/available-models"
+```
+</details>
+
+### UV Unwrapping
+<details>
+<summary> Mesh UV Unwrapping Example </summary>
+
+```bash
+# 1. Upload mesh file (must be without UV coordinates)
+curl -X POST "http://localhost:7842/api/v1/file-upload/mesh" \
+  -F "file=@/path/to/mesh_no_uv.obj"
+# Response: {"file_id": "mesh_xyz456", ...}
+
+# 2. Generate UV coordinates
+curl -X POST "http://localhost:7842/api/v1/mesh-uv-unwrapping/unwrap-mesh" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mesh_file_id": "mesh_xyz456",
+    "distortion_threshold": 1.25,
+    "pack_method": "blender",
+    "save_individual_parts": true,
+    "output_format": "obj",
+    "model_preference": "partuv_uv_unwrapping"
+  }'
+# Response: {"job_id": "uv_job_456", ...}
+
+# Alternative: Skip UV packing for faster processing
+curl -X POST "http://localhost:7842/api/v1/mesh-uv-unwrapping/unwrap-mesh" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mesh_file_id": "mesh_xyz456",
+    "distortion_threshold": 1.5,
+    "pack_method": "none",
+    "save_individual_parts": false,
+    "output_format": "obj"
+  }'
+
+# 3. Download mesh with UV coordinates
+curl "http://localhost:7842/api/v1/system/jobs/{job_id}/download" \
+  -o "mesh_with_uv.obj"
+
+# 4. Check available packing methods
+curl "http://localhost:7842/api/v1/mesh-uv-unwrapping/pack-methods"
+```
+</details>
+<br>
 For more examples, check out [API doc](./docs/api_documentation.md). Notice that the uploaded file may have a expired time.
 
-## 🧪 Testing
-
-### Adapter Tests
+### Testing
+Directly test the adapters (no need to start up the server)
 ```bash
 # test all the adapters 
 python tests/run_adapter_tests.py 
 # test some specific adapter e.g. testing trellis
 PYTHONPATH=. pytest tests/test_adapters/test_trellis_adapter.py -v -s -r s
 ```
-
-### Integration Tests
+Once the server is up, you can query the system-level information 
+```bash
+# Test basic api endpoints
+pytest tests/test_basic_endpoints.py -v -s -r s
+# Run the on-demand multiprocesing scheduler 
+python tests/test_on_demand_scheduler.py 
+```
+Or test the integration of each module 
 ```bash
 # submit a job, wait until finished, next job
 python tests/run_test_client.py --server-url http://localhost:7842 \
@@ -309,23 +432,10 @@ python tests/run_test_client.py --server-url http://localhost:7842 \
 python tests/run_test_client.py --server-url http://localhost:7842 \
   --timeout 3600 --poll-interval 30 --output-dir test_results.concurrent 
 ```
-
-### Others
-```bash
-# Test basic api endpoints
-pytest tests/test_basic_endpoints.py -v -s -r s
-# Run the on-demand multiprocesing scheduler 
-python tests/test_on_demand_scheduler.py 
-```
-
-## ⚙️ Configuration
-* [system configuration](./config/system.yaml)
-* [model configuration](./config/models.yaml)
-* [logging configuration](./config/logging.yaml)
+The tests based on `curl` is also provided at [curl_tests](./tests/curl/)
 
 
-
-## 🔧 Development
+## Development
 ### Project Structure
 ```
 3DAIGC-API/
@@ -342,6 +452,12 @@ python tests/test_on_demand_scheduler.py
 └── utils/                 # Utilities
 ```
 
+### Configuration
+* [system configuration](./config/system.yaml)
+* [model configuration](./config/models.yaml)
+* [logging configuration](./config/logging.yaml)
+
+
 ### Adding New Models
 1. Create an adapter in `adapters/` following the base interface
 2. Register the model in `config/models.yaml` and model factory `core/scheduler/model_factory.py`
@@ -352,12 +468,11 @@ python tests/test_on_demand_scheduler.py
 2. Frequently loading/unloading models is very slow (as can be observed in the test client). Better to enable ONLY required models and always keep them in the VRAM in practice.
 3. A lot of the code is written by vibe coding (Cursor + Claude4), Claude4 is a good software engineer, and I have learnt a lot from him/her in system design. Have a look at [vibe coding prompt](./docs/vibe_coding_prompt.md) and [vibe coding READMEs](./docs/vibe_coding/) if interested.
 
-## 🛣️ TODO
+## TODO
 ### Short-Term 
-- [ ] Better orgnaize (cleanup) the output directory of current API service
+- [x] Better orgnaize (cleanup) the output directory of current API service
 - [ ] Support multiview images as the condition in mesh generation models
 - [ ] Expose and support more parameters (e.g. decimation ratio in mesh generation)
-- [ ] On the client side we support easily changing the number of parts in mesh segmentation
 
 ### Long-Term 
 - [x] Job queue and scheduler switches to sql
@@ -365,9 +480,9 @@ python tests/test_on_demand_scheduler.py
 - [ ] Windows one-click installer
 - [ ] Separate Job management/queries from AI inference processing (lightweight service layers)
 
-## 📄 License
+## License
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 Notice that each algorithm **HAS ITS OWN LICENSE**, please check them carefully if needed.
 
-## 🌟 Acknowledgment
-Special thanks to the authors and contributors of all integrated models and the open-source community :)
+##  Acknowledgment
+Special thanks to the authors and contributors of all integrated models and the open-source community.

@@ -14,7 +14,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from api.dependencies import get_scheduler
+from api.dependencies import get_current_user_or_none, get_scheduler
 from api.routers.file_upload import resolve_file_id
 from core.scheduler.job_queue import JobRequest
 from core.scheduler.multiprocess_scheduler import MultiprocessModelScheduler
@@ -412,6 +412,7 @@ async def process_file_input(
 async def text_to_raw_mesh(
     mesh_request: TextToRawMeshRequest,
     scheduler: MultiprocessModelScheduler = Depends(get_scheduler),
+    current_user = Depends(get_current_user_or_none),
 ):
     """
     Generate a 3D mesh from text description.
@@ -419,11 +420,15 @@ async def text_to_raw_mesh(
     Args:
         mesh_request: Text-to-mesh generation parameters
         scheduler: Model scheduler dependency
+        current_user: Current authenticated user (required if auth enabled)
 
     Returns:
         Job information for the mesh generation task
     """
     try:
+        # Extract user_id if user is authenticated
+        user_id = current_user.user_id if current_user else None
+        
         # Validate model preference
         validate_model_preference(
             mesh_request.model_preference, "text_to_raw_mesh", scheduler
@@ -438,6 +443,7 @@ async def text_to_raw_mesh(
             model_preference=mesh_request.model_preference,
             priority=1,
             metadata={"feature_type": "text_to_raw_mesh"},
+            user_id=user_id,
         )
         job_id = await scheduler.schedule_job(job_request)
 
@@ -459,6 +465,7 @@ async def text_to_raw_mesh(
 async def text_to_textured_mesh(
     mesh_request: TextToTexturedMeshRequest,
     scheduler: MultiprocessModelScheduler = Depends(get_scheduler),
+    current_user = Depends(get_current_user_or_none),
 ):
     """
     Generate a 3D textured mesh from text description.
@@ -466,11 +473,14 @@ async def text_to_textured_mesh(
     Args:
         mesh_request: Text-to-textured-mesh generation parameters
         scheduler: Model scheduler dependency
+        current_user: Current authenticated user (required if auth enabled)
 
     Returns:
         Job information for the mesh generation task
     """
     try:
+        user_id = current_user.user_id if current_user else None
+        
         # Validate model preference
         validate_model_preference(
             mesh_request.model_preference, "text_to_textured_mesh", scheduler
@@ -487,6 +497,7 @@ async def text_to_textured_mesh(
             model_preference=mesh_request.model_preference,
             priority=1,
             metadata={"feature_type": "text_to_textured_mesh"},
+            user_id=user_id,
         )
 
         job_id = await scheduler.schedule_job(job_request)
@@ -510,6 +521,7 @@ async def text_to_textured_mesh(
 async def text_mesh_painting(
     mesh_request: TextMeshPaintingRequest,
     scheduler: MultiprocessModelScheduler = Depends(get_scheduler),
+    current_user = Depends(get_current_user_or_none),
 ):
     """
     Texture a 3D mesh from text description.
@@ -517,11 +529,14 @@ async def text_mesh_painting(
     Args:
         mesh_request: Text-based mesh painting parameters
         scheduler: Model scheduler dependency
+        current_user: Current authenticated user (required if auth enabled)
 
     Returns:
         Job information for the mesh painting task
     """
     try:
+        user_id = current_user.user_id if current_user else None
+        
         # Validate model preference
         validate_model_preference(
             mesh_request.model_preference, "text_mesh_painting", scheduler
@@ -546,6 +561,7 @@ async def text_mesh_painting(
             model_preference=mesh_request.model_preference,
             priority=1,
             metadata={"feature_type": "text_mesh_painting"},
+            user_id=user_id,
         )
 
         job_id = await scheduler.schedule_job(job_request)
@@ -569,6 +585,7 @@ async def text_mesh_painting(
 async def image_to_raw_mesh(
     mesh_request: ImageToRawMeshRequest,
     scheduler: MultiprocessModelScheduler = Depends(get_scheduler),
+    current_user = Depends(get_current_user_or_none),
 ):
     """
     Generate a 3D mesh from image.
@@ -576,11 +593,14 @@ async def image_to_raw_mesh(
     Args:
         mesh_request: Image-to-mesh generation parameters
         scheduler: Model scheduler dependency
+        current_user: Current authenticated user (required if auth enabled)
 
     Returns:
         Job information for the mesh generation task
     """
     try:
+        user_id = current_user.user_id if current_user else None
+        
         # Validate model preference
         validate_model_preference(
             mesh_request.model_preference, "image_to_raw_mesh", scheduler
@@ -603,6 +623,7 @@ async def image_to_raw_mesh(
             model_preference=mesh_request.model_preference,
             priority=1,
             metadata={"feature_type": "image_to_raw_mesh"},
+            user_id=user_id,
         )
 
         job_id = await scheduler.schedule_job(job_request)
@@ -625,6 +646,7 @@ async def image_to_raw_mesh(
 async def image_to_textured_mesh(
     mesh_request: ImageToTexturedMeshRequest,
     scheduler: MultiprocessModelScheduler = Depends(get_scheduler),
+    current_user = Depends(get_current_user_or_none),
 ):
     """
     Generate a 3D textured mesh from image.
@@ -632,11 +654,14 @@ async def image_to_textured_mesh(
     Args:
         mesh_request: Image-to-textured-mesh generation parameters
         scheduler: Model scheduler dependency
+        current_user: Current authenticated user (required if auth enabled)
 
     Returns:
         Job information for the mesh generation task
     """
     try:
+        user_id = current_user.user_id if current_user else None
+        
         # Validate model preference
         validate_model_preference(
             mesh_request.model_preference, "image_to_textured_mesh", scheduler
@@ -671,6 +696,7 @@ async def image_to_textured_mesh(
             model_preference=mesh_request.model_preference,
             priority=1,
             metadata={"feature_type": "image_to_textured_mesh"},
+            user_id=user_id,
         )
 
         job_id = await scheduler.schedule_job(job_request)
@@ -693,6 +719,7 @@ async def image_to_textured_mesh(
 async def image_mesh_painting(
     mesh_request: ImageMeshPaintingRequest,
     scheduler: MultiprocessModelScheduler = Depends(get_scheduler),
+    current_user = Depends(get_current_user_or_none),
 ):
     """
     Texture a 3D mesh using an image.
@@ -700,11 +727,14 @@ async def image_mesh_painting(
     Args:
         mesh_request: Image-based mesh painting parameters
         scheduler: Model scheduler dependency
+        current_user: Current authenticated user (required if auth enabled)
 
     Returns:
         Job information for the mesh painting task
     """
     try:
+        user_id = current_user.user_id if current_user else None
+        
         # Validate model preference
         validate_model_preference(
             mesh_request.model_preference, "image_mesh_painting", scheduler
@@ -737,6 +767,7 @@ async def image_mesh_painting(
             model_preference=mesh_request.model_preference,
             priority=1,
             metadata={"feature_type": "image_mesh_painting"},
+            user_id=user_id,
         )
 
         job_id = await scheduler.schedule_job(job_request)
@@ -759,11 +790,14 @@ async def image_mesh_painting(
 async def part_completion(
     mesh_request: PartCompletionRequest,
     scheduler: MultiprocessModelScheduler = Depends(get_scheduler),
+    current_user = Depends(get_current_user_or_none),
 ):
     """
     Complete a part of a 3D mesh.
     """
     try:
+        user_id = current_user.user_id if current_user else None
+        
         # Validate model preference
         validate_model_preference(
             mesh_request.model_preference, "part_completion", scheduler
@@ -786,6 +820,7 @@ async def part_completion(
             model_preference=mesh_request.model_preference,
             priority=1,
             metadata={"feature_type": "part_completion"},
+            user_id=user_id,
         )
 
         job_id = await scheduler.schedule_job(job_request)

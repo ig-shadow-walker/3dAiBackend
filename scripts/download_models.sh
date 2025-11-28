@@ -403,7 +403,6 @@ download_fastmesh() {
     
     if [ "$FORCE_DOWNLOAD" = false ] && verify_directory "$model_dir_v1k" 3; then
         print_info "FastMesh v1k model already exists and verified"
-        return 0
     fi
     
     mkdir -p "$model_dir_v1k"

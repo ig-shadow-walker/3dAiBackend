@@ -152,6 +152,8 @@ class PartUVRunner:
             return mesh, tree_filename, tree_dict, preprocess_times
 
         except Exception as e:
+            import traceback 
+            traceback.print_exc()
             raise PartUVError(f"Failed to preprocess mesh: {e}")
 
     def generate_uv_from_mesh(
@@ -194,10 +196,12 @@ class PartUVRunner:
             if output_path is None:
                 mesh_name = mesh_path.stem
                 output_path = Path("outputs") / "partuv" / mesh_name
+                # (Path("outputs") / "partuv").mkdir(parents=True, exist_ok=True)
             else:
                 output_path = Path(output_path)
 
-            output_path.mkdir(parents=True, exist_ok=True)
+            stem, _ = os.path.splitext(os.path.basename(mesh_path))
+            os.makedirs(os.path.join(os.path.dirname(output_path), stem), exist_ok=True)
 
             logger.info(f"Generating UV coordinates for mesh: {mesh_path}")
 

@@ -8,9 +8,9 @@ job processing with the following key behavioral changes:
    WORKERS_BUSY or NO_VRAM, it is immediately put back at the front of the queue instead
    of using a retry mechanism with exponential backoff delays.
 
-2. **Strict FIFO Order**: Jobs are processed in the exact order they were submitted.
-   A job submitted later will NEVER be processed before an earlier job unless the
-   earlier job is impossible to process.
+2. **Strict FIFO Submission Order**: Jobs are submitted to workers in the exact order they 
+   were enqueued. A job submitted later will NEVER be submitted before an earlier job 
+   unless the earlier job is impossible to process.
 
 3. **Job Failure Only for Impossible Cases**: Jobs are only failed if they are truly
    impossible to process:
@@ -25,13 +25,16 @@ job processing with the following key behavioral changes:
 5. **Transient Error Handling**: Transient errors (network, timeout, etc.) cause jobs
    to be requeued rather than failed, maintaining the FIFO order.
 
-6. **Sequential Processing**: Jobs are processed one at a time (not concurrently) to
-   maintain strict ordering. Each job must complete before the next one starts.
+6. **Concurrent Execution**: Jobs are submitted to workers in FIFO order, but multiple 
+   jobs can execute concurrently on different workers. The scheduler continues dequeuing 
+   and submitting jobs without waiting for previous jobs to complete, enabling true 
+   parallelism across multiple GPU workers.
 
 7. **Single Instance**: Uses singleton pattern to prevent multiple scheduler instances
    when deployed with uvicorn. For true multi-worker deployments, use external queue systems.
 
-This ensures predictable, ordered job processing while efficiently managing GPU resources.
+This ensures predictable, ordered job submission while maximizing GPU utilization through
+concurrent job execution across multiple workers.
 
 DEPLOYMENT NOTE:
 - Use `uvicorn app:main --workers 1` for single-worker deployment with this scheduler
@@ -390,10 +393,12 @@ def _create_model_from_config(config: Dict[str, Any]) -> BaseModel:
 
 class MultiprocessModelScheduler:
     """
-    Multiprocessing-based model scheduler that provides true parallelism with strict FIFO processing.
+    Multiprocessing-based model scheduler that provides true parallelism with FIFO job submission.
 
-    This scheduler spawns worker processes on-demand for each model, enabling true parallelism
-    for AI inference workloads while maintaining strict FIFO job processing order.
+    This scheduler spawns worker processes on-demand for each model, enabling concurrent job
+    execution across multiple GPU workers while maintaining strict FIFO order for job submission.
+    Jobs are dequeued and submitted in order, but multiple jobs execute in parallel on available
+    workers, maximizing GPU utilization.
 
     IMPORTANT: This scheduler should be used with uvicorn --workers 1 to avoid
     multiple scheduler instances. For multi-worker deployments, use external
@@ -413,6 +418,7 @@ class MultiprocessModelScheduler:
         gpu_monitor: Optional[GPUMonitor] = None,
         job_queue: Optional[JobQueue] = None,
         database_url: Optional[str] = None,
+        enable_processing: bool = True,  # NEW: Allow disabling job processing
     ):
         # Prevent multiple initialization
         if self._initialized:
@@ -431,6 +437,7 @@ class MultiprocessModelScheduler:
             persistence_file="data/job_queue_state.json",
             persistence_interval=30,
         )
+        self.enable_processing = enable_processing  # NEW: Control job processing
 
         # Worker management
         self.workers: Dict[str, mp.Process] = {}
@@ -560,27 +567,31 @@ class MultiprocessModelScheduler:
         self.running = True
         # Store reference to main event loop
         self.main_event_loop = asyncio.get_event_loop()
-        logger.info("Starting multiprocess model scheduler (on-demand mode)")
+        
+        if self.enable_processing:
+            logger.info("Starting multiprocess model scheduler (on-demand mode)")
 
-        # Start job queue persistence
-        await self.job_queue.start_persistence()
+            # Start job queue persistence
+            await self.job_queue.start_persistence()
 
-        # Start response handler thread
-        self.response_handler_thread = threading.Thread(
-            target=self._handle_worker_responses, daemon=True
-        )
-        self.response_handler_thread.start()
+            # Start response handler thread
+            self.response_handler_thread = threading.Thread(
+                target=self._handle_worker_responses, daemon=True
+            )
+            self.response_handler_thread.start()
 
-        # Start background job processing task
-        self.job_processing_task = asyncio.create_task(self._job_processing_loop())
+            # Start background job processing task
+            self.job_processing_task = asyncio.create_task(self._job_processing_loop())
 
-        # Start cleanup task for idle workers
-        asyncio.create_task(self._cleanup_idle_workers())
+            # Start cleanup task for idle workers
+            asyncio.create_task(self._cleanup_idle_workers())
 
-        # Start job queue cleanup task
-        asyncio.create_task(self._job_queue_cleanup_loop())
+            # Start job queue cleanup task
+            asyncio.create_task(self._job_queue_cleanup_loop())
 
-        logger.info("Scheduler started - workers will be created on demand")
+            logger.info("Scheduler started - workers will be created on demand")
+        else:
+            logger.info("Scheduler started in queue-only mode (no job processing)")
 
     async def stop(self):
         """Stop the scheduler and cleanup worker processes"""
@@ -780,7 +791,12 @@ class MultiprocessModelScheduler:
         }
 
     async def _job_processing_loop(self):
-        """Background loop that processes jobs from the queue using JobQueue.dequeue()"""
+        """
+        Background loop that processes jobs from the queue using JobQueue.dequeue().
+        
+        Jobs are dequeued in FIFO order and submitted to workers. The loop does not wait
+        for job completion, allowing multiple jobs to execute concurrently on different workers.
+        """
         logger.info("Starting job processing loop")
 
         while self.running:
@@ -795,7 +811,7 @@ class MultiprocessModelScheduler:
 
                 logger.info(f"Dequeued job {job_request.job_id} for processing")
 
-                # Process job synchronously to maintain strict FIFO order
+                # Submit job to worker (non-blocking, result handled in separate task)
                 await self._process_job_with_queue_integration(job_request)
 
             except Exception as e:
@@ -805,7 +821,7 @@ class MultiprocessModelScheduler:
         logger.info("Job processing loop stopped")
 
     async def _process_job_with_queue_integration(self, job_request: JobRequest):
-        """Process a job with proper JobQueue integration - FIFO approach"""
+        """Process a job with proper JobQueue integration - FIFO approach with concurrent execution"""
         try:
             # First check if job is impossible to process
             is_impossible, impossible_reason = self._is_job_impossible(job_request)
@@ -866,18 +882,14 @@ class MultiprocessModelScheduler:
             self.worker_queues[worker_id].put(job_data)
             logger.info(f"Sent job {job_request.job_id} to worker {worker_id}")
 
-            # Wait for result
-            logger.info(f"Waiting for result for job {job_request.job_id}")
-            result = await result_future
-            logger.info(f"Received result for job {job_request.job_id}: {result}")
-
-            # Update job status through JobQueue
-            if result["success"]:
-                await self.job_queue.complete_job(job_request.job_id, result["result"])
-                logger.info(f"Job {job_request.job_id} completed successfully")
-            else:
-                await self.job_queue.fail_job(job_request.job_id, result["error"])
-                logger.info(f"Job {job_request.job_id} failed: {result['error']}")
+            # Create a separate task to handle the result asynchronously
+            # This allows the main loop to continue processing other jobs
+            asyncio.create_task(
+                self._handle_job_result(job_request.job_id, result_future)
+            )
+            logger.info(
+                f"Job {job_request.job_id} submitted to worker, result will be handled asynchronously"
+            )
 
         except Exception as e:
             logger.error(f"Error processing job {job_request.job_id}: {e}")
@@ -897,6 +909,31 @@ class MultiprocessModelScheduler:
             else:
                 # Non-transient error - fail immediately
                 await self.job_queue.fail_job(job_request.job_id, str(e))
+
+    async def _handle_job_result(self, job_id: str, result_future: asyncio.Future):
+        """Handle job result asynchronously without blocking the main processing loop"""
+        try:
+            logger.info(f"Waiting for result for job {job_id}")
+            result = await result_future
+            logger.info(f"Received result for job {job_id}: {result}")
+
+            # Update job status through JobQueue
+            if result["success"]:
+                await self.job_queue.complete_job(job_id, result["result"])
+                logger.info(f"Job {job_id} completed successfully")
+            else:
+                await self.job_queue.fail_job(job_id, result["error"])
+                logger.info(f"Job {job_id} failed: {result['error']}")
+
+        except Exception as e:
+            logger.error(f"Error handling result for job {job_id}: {e}")
+            # Try to mark job as failed
+            try:
+                await self.job_queue.fail_job(
+                    job_id, f"Error handling result: {str(e)}"
+                )
+            except Exception as e2:
+                logger.error(f"Failed to mark job {job_id} as failed: {e2}")
 
     def _get_model_id_for_job(self, job_request: JobRequest) -> str:
         """Get the model ID that will be used for processing this job"""

@@ -502,6 +502,43 @@ async def get_scheduler_status(request: Request):
         return {"scheduler": {"running": False, "error": str(e)}}
 
 
+@router.get("/jobs/queue/stats", summary="Get job queue statistics")
+async def get_queue_stats(
+    scheduler: MultiprocessModelScheduler = Depends(get_scheduler),
+):
+    """
+    Get current job queue statistics including pending jobs count.
+    
+    Returns detailed statistics about the job queue including:
+    - Number of pending (queued) jobs
+    - Number of processing jobs
+    - Number of completed jobs
+    - Queue utilization
+    
+    Works in both single-worker and multi-worker deployment modes.
+    """
+    try:
+        queue_status = await scheduler.job_queue.get_queue_status()
+        
+        return {
+            "success": True,
+            "data": {
+                "pending_jobs": queue_status.get("queued_jobs", queue_status.get("pending", 0)),
+                "processing_jobs": queue_status.get("processing_jobs", queue_status.get("processing", 0)),
+                "completed_jobs": queue_status.get("completed_jobs", queue_status.get("total_jobs", 0)),
+                "max_queue_size": queue_status.get("max_queue_size"),
+                "queue_utilization": queue_status.get("queue_utilization"),
+                "timestamp": time.time(),
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error getting queue stats: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get queue statistics: {str(e)}"
+        )
+
+
 @router.get("/jobs/history")
 async def get_jobs_history(
     limit: int = 100,
@@ -511,9 +548,12 @@ async def get_jobs_history(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     scheduler: MultiprocessModelScheduler = Depends(get_scheduler),
+    request: Request = None,
 ):
     """
     Get historical jobs with filtering support.
+    
+    Users can only see their own jobs. Admins can see all jobs.
 
     Args:
         limit: Maximum number of jobs to return (max 500)
@@ -523,6 +563,7 @@ async def get_jobs_history(
         start_date: Filter jobs after this date (ISO format: 2024-01-01T00:00:00Z)
         end_date: Filter jobs before this date (ISO format: 2024-01-01T23:59:59Z)
         scheduler: Model scheduler dependency
+        request: Request object
 
     Returns:
         Paginated list of historical jobs
@@ -530,7 +571,15 @@ async def get_jobs_history(
     try:
         from datetime import datetime
 
+        from api.dependencies import get_current_user_optional
+        from core.auth.models import UserRole
         from core.scheduler.job_queue import JobStatus
+        
+        # Get current user for filtering
+        current_user = await get_current_user_optional(
+            request.headers.get("authorization") if request else None,
+            request
+        )
 
         # Validate limit
         if limit > 500:
@@ -580,6 +629,12 @@ async def get_jobs_history(
             jobs = await scheduler.job_queue.get_jobs_by_status(job_status)
             for job in jobs:
                 job_dict = job.to_dict()
+                
+                # User filtering: non-admin users can only see their own jobs
+                if current_user and current_user.role != UserRole.ADMIN:
+                    job_user_id = job_dict.get("user_id")
+                    if job_user_id != current_user.user_id:
+                        continue
 
                 # Apply feature filter if provided
                 if feature and job_dict.get("feature") != feature:
@@ -645,11 +700,26 @@ async def get_jobs_history(
 async def get_job_status(job_id: str, request: Request):
     """Get status of a specific job with visitable URLs for files"""
     try:
+        from api.dependencies import get_current_user_optional
+        
         scheduler = await get_scheduler(request)
         job_status = await scheduler.get_job_status(job_id)
 
         if job_status is None:
             raise HTTPException(status_code=404, detail="Job not found")
+        
+        # User filtering: non-admin users can only see their own jobs
+        from core.auth.models import UserRole
+        current_user = await get_current_user_optional(
+            request.headers.get("authorization"), 
+            request
+        )
+        
+        if current_user:
+            job_user_id = job_status.get("user_id")
+            # If user is not admin and job doesn't belong to them, deny access
+            if current_user.role != UserRole.ADMIN and job_user_id != current_user.user_id:
+                raise HTTPException(status_code=403, detail="Access denied to this job")
 
         # If job is completed and has results, convert file paths to URLs
         if job_status.get("status") == "completed" and job_status.get("result"):
@@ -801,11 +871,25 @@ async def download_job_result(
         FileResponse for direct download or JSON with base64 data
     """
     try:
+        from api.dependencies import get_current_user_optional
+        from core.auth.models import UserRole
+        
         scheduler = await get_scheduler(request)
         job_status = await scheduler.get_job_status(job_id)
 
         if job_status is None:
             raise HTTPException(status_code=404, detail="Job not found")
+        
+        # User filtering: non-admin users can only download their own jobs
+        current_user = await get_current_user_optional(
+            request.headers.get("authorization"),
+            request
+        )
+        
+        if current_user:
+            job_user_id = job_status.get("user_id")
+            if current_user.role != UserRole.ADMIN and job_user_id != current_user.user_id:
+                raise HTTPException(status_code=403, detail="Access denied to this job")
 
         if job_status.get("status") != "completed":
             raise HTTPException(
@@ -911,11 +995,25 @@ async def download_job_thumbnail(
         FileResponse for direct download or JSON with base64 data
     """
     try:
+        from api.dependencies import get_current_user_optional
+        from core.auth.models import UserRole
+        
         scheduler = await get_scheduler(request)
         job_status = await scheduler.get_job_status(job_id)
 
         if job_status is None:
             raise HTTPException(status_code=404, detail="Job not found")
+        
+        # User filtering: non-admin users can only access their own jobs
+        current_user = await get_current_user_optional(
+            request.headers.get("authorization"),
+            request
+        )
+        
+        if current_user:
+            job_user_id = job_status.get("user_id")
+            if current_user.role != UserRole.ADMIN and job_user_id != current_user.user_id:
+                raise HTTPException(status_code=403, detail="Access denied to this job")
 
         if job_status.get("status") != "completed":
             raise HTTPException(
@@ -1013,11 +1111,25 @@ async def get_job_result_info(job_id: str, request: Request):
         Detailed job result information including file metadata
     """
     try:
+        from api.dependencies import get_current_user_optional
+        from core.auth.models import UserRole
+        
         scheduler = await get_scheduler(request)
         job_status = await scheduler.get_job_status(job_id)
 
         if job_status is None:
             raise HTTPException(status_code=404, detail="Job not found")
+        
+        # User filtering
+        current_user = await get_current_user_optional(
+            request.headers.get("authorization"),
+            request
+        )
+        
+        if current_user:
+            job_user_id = job_status.get("user_id")
+            if current_user.role != UserRole.ADMIN and job_user_id != current_user.user_id:
+                raise HTTPException(status_code=403, detail="Access denied to this job")
 
         result = job_status.get("result", {})
         if not result:
@@ -1045,7 +1157,7 @@ async def get_job_result_info(job_id: str, request: Request):
                 "file_size_bytes": file_stats.st_size,
                 "file_size_mb": file_stats.st_size / (1024 * 1024),
                 "content_type": get_content_type_for_file(output_path),
-                "file_extension": Path(output_path).suffix,
+                "file_extension": Path(output_path).suffix[1:],
                 "created_time": datetime.fromtimestamp(file_stats.st_ctime).isoformat(),
                 "modified_time": datetime.fromtimestamp(
                     file_stats.st_mtime
@@ -1104,11 +1216,25 @@ async def delete_job_result(
         Confirmation of deletion
     """
     try:
+        from api.dependencies import get_current_user_optional
+        from core.auth.models import UserRole
+        
         scheduler = await get_scheduler(request)
         job_status = await scheduler.get_job_status(job_id)
 
         if job_status is None:
             raise HTTPException(status_code=404, detail="Job not found")
+        
+        # User filtering: users can only delete their own job results
+        current_user = await get_current_user_optional(
+            request.headers.get("authorization"),
+            request
+        )
+        
+        if current_user:
+            job_user_id = job_status.get("user_id")
+            if current_user.role != UserRole.ADMIN and job_user_id != current_user.user_id:
+                raise HTTPException(status_code=403, detail="Access denied to this job")
 
         result = job_status.get("result", {})
         if not result:
@@ -1157,6 +1283,77 @@ async def delete_job_result(
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error deleting job result: {str(e)}"
+        )
+
+
+@router.delete("/jobs/{job_id}", summary="Delete job from database")
+async def delete_job(
+    job_id: str, request: Request, _: bool = Depends(verify_api_key)
+):
+    """
+    Delete a job from the database/queue system.
+    
+    This will remove the job record entirely from the system.
+    If the job has associated result files, they will NOT be automatically deleted.
+    Use /jobs/{job_id}/result endpoint first if you want to clean up files.
+
+    Args:
+        job_id: The job ID to delete
+
+    Returns:
+        Confirmation of deletion
+    """
+    try:
+        from api.dependencies import get_current_user_optional
+        from core.auth.models import UserRole
+        
+        scheduler = await get_scheduler(request)
+        
+        # Check if job exists
+        job_status = await scheduler.get_job_status(job_id)
+        if job_status is None:
+            raise HTTPException(status_code=404, detail="Job not found")
+        
+        # User filtering: users can only delete their own jobs
+        current_user = await get_current_user_optional(
+            request.headers.get("authorization"),
+            request
+        )
+        
+        if current_user:
+            job_user_id = job_status.get("user_id")
+            if current_user.role != UserRole.ADMIN and job_user_id != current_user.user_id:
+                raise HTTPException(status_code=403, detail="Access denied to this job")
+        
+        # Get job info before deletion
+        job_info = {
+            "status": job_status.get("status"),
+            "feature": job_status.get("feature"),
+            "created_at": job_status.get("created_at"),
+        }
+        
+        # Delete the job from the queue/database
+        success = await scheduler.job_queue.delete_job(job_id)
+        
+        if success:
+            return {
+                "job_id": job_id,
+                "message": "Job deleted successfully from database",
+                "deleted": True,
+                "job_info": job_info,
+            }
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to delete job from database"
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting job {job_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error deleting job: {str(e)}"
         )
 
 

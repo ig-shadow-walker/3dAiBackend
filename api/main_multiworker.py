@@ -1,11 +1,22 @@
-"""FastAPI application main entry point - Single Worker Mode
+"""
+FastAPI application main entry point - Multi-Worker Configuration
 
-This is the standard deployment mode with scheduler embedded in FastAPI.
-For multi-worker deployments, use api/main_multiworker.py with scheduler_service.py
+This version is designed for multi-worker deployment with a separate scheduler service.
 
+Architecture:
+    - Multiple FastAPI workers handle HTTP requests
+    - Jobs are submitted to Redis queue
+    - Separate scheduler service (scheduler_service.py) processes jobs
+    
 Deployment:
-    Single worker (recommended for simple deployments):
-        uvicorn api.main:app --workers 1
+    1. Start Redis: docker run -d -p 6379:6379 redis:latest
+    2. Start scheduler: python scripts/scheduler_service.py
+    3. Start API: uvicorn api.main_multiworker:app --workers 4
+
+Key Differences from main.py:
+    - No scheduler creation (connects to external scheduler via Redis)
+    - Redis-based job queue for cross-worker communication
+    - Can safely run with multiple uvicorn workers
 """
 
 import logging
@@ -18,11 +29,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
 from core.config import create_directories, get_settings, setup_logging
-from core.scheduler import GPUMonitor
-from core.scheduler.scheduler_factory import (
-    create_development_scheduler,
-    create_production_scheduler,
-)
+from core.scheduler.redis_job_queue import RedisJobQueue
 from core.utils.exceptions import BaseAPIException
 
 from .routers import (
@@ -33,12 +40,14 @@ from .routers import (
     mesh_segmentation,
     mesh_uv_unwrapping,
     system,
+    users,
 )
 
 logger = logging.getLogger(__name__)
 
 # Global variables for shared resources
-scheduler = None
+redis_job_queue = None
+auth_service = None
 
 
 # Configure CORS
@@ -60,17 +69,16 @@ def configure_security(app: FastAPI, settings):
         app.add_middleware(
             TrustedHostMiddleware,
             allowed_hosts=["*"],
-            # allowed_hosts=["localhost", "127.0.0.1", settings.server.host]
         )
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
-    global scheduler
+    global redis_job_queue, auth_service
 
     # Startup
-    logger.info("Starting 3D Generative Models Backend (Single Worker Mode)...")
+    logger.info("Starting 3D Generative Models Backend (Multi-Worker Mode)...")
 
     try:
         # Load configuration
@@ -82,35 +90,51 @@ async def lifespan(app: FastAPI):
         # Create necessary directories
         create_directories(settings.storage)
 
-        # Initialize GPU monitor and scheduler
-        gpu_monitor = GPUMonitor(memory_buffer=1024)  # Keep 1GB free
+        # Connect to Redis job queue (shared with scheduler service)
+        redis_url = getattr(settings, "redis_url", "redis://localhost:6379")
+        logger.info(f"Connecting to Redis at {redis_url}")
 
-        # Use factory to create appropriate scheduler based on environment
-        logger.info(f"Environment: {settings.environment}")
-        if settings.environment == "production":
-            logger.info("Creating production scheduler (multiprocess)")
-            scheduler = create_production_scheduler(
-                gpu_monitor=gpu_monitor,
-                models_config=settings.models,
-            )
+        redis_job_queue = RedisJobQueue(
+            redis_url=redis_url,
+            queue_prefix="3daigc",
+            max_job_age_hours=24,
+        )
+        await redis_job_queue.connect()
+
+        # Store job queue in app state for dependency injection
+        app.state.job_queue = redis_job_queue
+
+        # Initialize authentication service (conditionally based on settings)
+        if settings.security.user_auth_enabled:
+            from redis.asyncio import Redis
+            from core.auth import AuthService, UserStorage
+            
+            logger.info("Initializing authentication service...")
+            redis_client = Redis.from_url(redis_url, decode_responses=True)
+            user_storage = UserStorage(redis_client, key_prefix="3daigc")
+            auth_service = AuthService(user_storage)
+            
+            # Store auth service in app state for dependency injection
+            app.state.auth_service = auth_service
+            
+            logger.info("✓ Authentication service initialized")
         else:
-            logger.info("Creating development scheduler (async)")
-            scheduler = create_development_scheduler(
-                gpu_monitor=gpu_monitor,
-                models_config=settings.models,
-            )
+            app.state.auth_service = None
+            logger.info("⚠ User authentication is DISABLED - running in simple mode")
 
-        # Note: The factory functions handle model registration automatically
-        # when auto_register_models=True (which is the default)
-        logger.info("Scheduler created with automatic model registration")
-
-        # Start the scheduler
-        await scheduler.start()
-
-        # Store scheduler in app state for dependency injection
-        app.state.scheduler = scheduler
-
-        logger.info("Application startup completed successfully")
+        logger.info("=" * 60)
+        logger.info("✓ FastAPI worker startup completed successfully")
+        logger.info("=" * 60)
+        logger.info("This worker submits jobs to Redis queue")
+        logger.info("Scheduler service processes jobs independently")
+        if settings.security.user_auth_enabled:
+            logger.info("User authentication: ENABLED (Redis-based)")
+            logger.info("  - Users can only see their own jobs")
+            logger.info("  - Admins can see all jobs")
+        else:
+            logger.info("User authentication: DISABLED (Simple mode)")
+            logger.info("  - All clients can see all jobs")
+        logger.info("=" * 60)
 
         yield
 
@@ -123,8 +147,11 @@ async def lifespan(app: FastAPI):
         logger.info("Shutting down 3D Generative Models Backend...")
 
         # Cleanup resources
-        if scheduler:
-            await scheduler.stop()
+        if redis_job_queue:
+            await redis_job_queue.disconnect()
+        
+        if auth_service and hasattr(auth_service.storage, 'redis'):
+            await auth_service.storage.redis.close()
 
         logger.info("Application shutdown completed")
 
@@ -132,7 +159,7 @@ async def lifespan(app: FastAPI):
 # Create FastAPI application
 app = FastAPI(
     title="3D Generative Models API",
-    description="Scalable 3D AI model inference server with VRAM-aware scheduling",
+    description="Scalable 3D AI model inference server with VRAM-aware scheduling (Multi-Worker Mode)",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -234,6 +261,8 @@ async def internal_error_handler(request: Request, exc: Exception):
 # Include routers
 app.include_router(system.router, prefix="/api/v1/system", tags=["System"])
 
+app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
+
 app.include_router(file_upload.router, prefix="/api/v1", tags=["File Upload"])
 
 app.include_router(mesh_generation.router, prefix="/api/v1", tags=["Mesh Generation"])
@@ -265,7 +294,10 @@ async def root():
     return {
         "name": "3D Generative Models API",
         "version": "1.0.0",
-        "description": "Scalable 3D AI model inference server",
+        "description": "Scalable 3D AI model inference server (Multi-Worker Mode)",
         "docs_url": "/docs",
         "health_url": "/health",
+        "deployment_mode": "multi_worker",
+        "note": "Jobs are processed by external scheduler service",
     }
+

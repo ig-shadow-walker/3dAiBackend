@@ -116,7 +116,7 @@ def create_production_scheduler(**kwargs) -> MultiprocessModelScheduler:
     This is the recommended way to create a scheduler for production use.
 
     Args:
-        **kwargs: Override configuration parameters (including models_config)
+        **kwargs: Override configuration parameters (including models_config, gpu_monitor, job_queue)
 
     Returns:
         Configured scheduler instance

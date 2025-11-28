@@ -62,6 +62,7 @@ class JobModel(Base):
     priority = Column(Integer, nullable=False, default=1, index=True)
     timeout_seconds = Column(Integer, nullable=False, default=3600)
     job_metadata = Column(JSONType, nullable=True)
+    user_id = Column(String(100), nullable=True, index=True)  # User who submitted the job
 
     # Status tracking
     status = Column(String(20), nullable=False, default="queued", index=True)
@@ -89,6 +90,7 @@ class JobModel(Base):
         Index("idx_jobs_status_priority", "status", "priority", "created_at"),
         Index("idx_jobs_feature_status", "feature", "status"),
         Index("idx_jobs_completed_at", "completed_at"),
+        Index("idx_jobs_user_id_created", "user_id", "created_at"),
     )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -101,6 +103,7 @@ class JobModel(Base):
             "priority": self.priority,
             "timeout_seconds": self.timeout_seconds,
             "metadata": self.job_metadata or {},
+            "user_id": self.user_id,
             "status": self.status,
             "progress": self.progress,
             "assigned_model": self.assigned_model,
@@ -132,6 +135,7 @@ class JobModel(Base):
             priority=job_request.priority,
             timeout_seconds=job_request.timeout_seconds,
             job_metadata=job_request.metadata,
+            user_id=job_request.user_id,
             status=job_request.status.value,
             progress=job_request.progress,
             assigned_model=job_request.assigned_model,
@@ -154,6 +158,7 @@ class JobModel(Base):
         self.priority = job_request.priority
         self.timeout_seconds = job_request.timeout_seconds
         self.job_metadata = job_request.metadata
+        self.user_id = job_request.user_id
         self.status = job_request.status.value
         self.progress = job_request.progress
         self.assigned_model = job_request.assigned_model

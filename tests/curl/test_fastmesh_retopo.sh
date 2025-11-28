@@ -85,6 +85,7 @@ download_result() {
 # Test 1: Upload mesh file
 echo -e "\n${YELLOW}=== Step 1: Upload Mesh File ===${NC}"
 upload_response=$(curl -s -X POST "$API_BASE/file-upload/mesh" \
+    -H "Authorization: Bearer 94p-R1vqTMpZIGunpE0RV0CZgBNMPfmnXicJzR5Ttgk" \
     -F "file=@$TEST_MESH")
 
 echo "Upload response: $upload_response"
@@ -102,6 +103,7 @@ echo -e "${GREEN}File uploaded successfully: $file_id${NC}"
 echo -e "\n${YELLOW}=== Step 2: FastMesh V1K Retopology (~1000 vertices) ===${NC}"
 retopo_v1k_response=$(curl -s -X POST "$API_BASE/mesh-retopology/retopologize-mesh" \
     -H "Content-Type: application/json" \
+    -H "Authorization: Bearer 94p-R1vqTMpZIGunpE0RV0CZgBNMPfmnXicJzR5Ttgk" \
     -d "{
         \"mesh_file_id\": \"$file_id\",
         \"model_preference\": \"fastmesh_v1k_retopology\",

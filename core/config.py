@@ -61,6 +61,8 @@ class SecurityConfig(BaseSettings):
     rate_limit_per_minute: int = 60
     cors_origins: List[str] = ["*"]
     jwt_secret: Optional[str] = None
+    # User management settings
+    user_auth_enabled: bool = True  # Enable user authentication and job isolation
 
 
 class ModelConfig(BaseSettings):
@@ -93,6 +95,10 @@ class Settings(BaseSettings):
     # Environment
     environment: str = "development"
     debug: bool = False
+
+    # Redis configuration (for multi-worker deployments)
+    redis_url: str = "redis://localhost:6379"
+    redis_enabled: bool = False  # Enable Redis-based job queue for multi-worker support
 
     model_config = SettingsConfigDict(env_prefix="P3D_", case_sensitive=False)
 

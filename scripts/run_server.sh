@@ -1,11 +1,14 @@
 #!/bin/bash
 
-# Run script for 3D Generative Models Backend
-# This script starts the FastAPI server
+# Run script for 3D Generative Models Backend (Single Worker Mode)
+# This script starts the FastAPI server with embedded scheduler
+#
+# For multi-worker deployments with separate scheduler service, use:
+#   ./scripts/run_multiworker.sh
 
 set -e
 
-echo "🚀 Starting 3D Generative Models Backend..."
+echo "🚀 Starting 3D Generative Models Backend (Single Worker Mode)..."
 
 
 # Check if configuration files exist

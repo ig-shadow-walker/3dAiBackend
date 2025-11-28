@@ -32,6 +32,7 @@ class JobRequest:
         priority: int = 1,
         timeout_seconds: int = 3600,
         metadata: Optional[Dict[str, Any]] = None,
+        user_id: Optional[str] = None,
     ):
         self.job_id = str(uuid.uuid4())
         self.feature = feature
@@ -40,6 +41,7 @@ class JobRequest:
         self.priority = priority
         self.timeout_seconds = timeout_seconds
         self.metadata = metadata or {}
+        self.user_id = user_id  # User who submitted the job
 
         # Status tracking
         self.status = JobStatus.QUEUED
@@ -67,6 +69,7 @@ class JobRequest:
             priority=data.get("priority", 1),
             timeout_seconds=data.get("timeout_seconds", 3600),
             metadata=data.get("metadata", {}),
+            user_id=data.get("user_id"),
         )
 
         # Restore additional fields
@@ -104,6 +107,7 @@ class JobRequest:
             priority=job_model.priority,  # type: ignore
             timeout_seconds=job_model.timeout_seconds,  # type: ignore
             metadata=job_model.job_metadata or {},  # type: ignore
+            user_id=getattr(job_model, 'user_id', None),  # type: ignore
         )
 
         # Restore additional fields
@@ -137,6 +141,7 @@ class JobRequest:
             "model_preference": self.model_preference,
             "priority": self.priority,
             "timeout_seconds": self.timeout_seconds,
+            "user_id": self.user_id,
             "status": self.status.value,
             "progress": self.progress,
             "assigned_model": self.assigned_model,
@@ -542,6 +547,61 @@ class JobQueue:
 
             return jobs
 
+    async def delete_job(self, job_id: str) -> bool:
+        """
+        Delete a job from the queue system and database.
+        
+        Args:
+            job_id: The job ID to delete
+            
+        Returns:
+            True if job was found and deleted, False otherwise
+        """
+        async with self._cache_lock:
+            # Check and remove from queue cache
+            for i, job in enumerate(self._queue_cache):
+                if job.job_id == job_id:
+                    del self._queue_cache[i]
+                    # Delete from database
+                    if self.db_manager.delete_job(job_id):
+                        logger.info(f"Deleted job {job_id} from queue")
+                        return True
+                    else:
+                        logger.error(f"Failed to delete job {job_id} from database")
+                        # Re-add to queue if database deletion failed
+                        self._queue_cache.insert(i, job)
+                        return False
+            
+            # Check and remove from processing cache
+            if job_id in self._processing_cache:
+                del self._processing_cache[job_id]
+                # Delete from database
+                if self.db_manager.delete_job(job_id):
+                    logger.info(f"Deleted job {job_id} from processing")
+                    return True
+                else:
+                    logger.error(f"Failed to delete job {job_id} from database")
+                    return False
+            
+            # Check and remove from completed cache
+            if job_id in self._completed_cache:
+                del self._completed_cache[job_id]
+                # Delete from database
+                if self.db_manager.delete_job(job_id):
+                    logger.info(f"Deleted job {job_id} from completed")
+                    return True
+                else:
+                    logger.error(f"Failed to delete job {job_id} from database")
+                    return False
+            
+            # Job not in any cache, try database directly
+            if self.db_manager.delete_job(job_id):
+                logger.info(f"Deleted job {job_id} from database (not in cache)")
+                return True
+            
+            logger.warning(f"Job {job_id} not found in queue or database")
+            return False
+
     async def cleanup_expired_jobs(self):
         """Clean up expired processing jobs"""
         async with self._cache_lock:
@@ -576,14 +636,3 @@ class JobQueue:
         """Legacy method - now handled by periodic cleanup"""
         pass
 
-    def _save_state(self):
-        """Legacy method - persistence is now handled by database"""
-        pass
-
-    def _load_state(self):
-        """Legacy method - loading is now handled by database"""
-        pass
-
-    async def _periodic_persistence(self):
-        """Legacy method - persistence is now handled by database"""
-        pass

@@ -11,7 +11,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from api.dependencies import get_scheduler
+from api.dependencies import get_current_user_or_none, get_scheduler
 from api.routers.file_upload import resolve_file_id
 from core.scheduler.job_queue import JobRequest
 from core.scheduler.multiprocess_scheduler import MultiprocessModelScheduler
@@ -118,6 +118,7 @@ class MeshRetopologyResponse(BaseModel):
 async def retopologize_mesh(
     request: MeshRetopologyRequest,
     scheduler: MultiprocessModelScheduler = Depends(get_scheduler),
+    current_user = Depends(get_current_user_or_none),
 ):
     """
     Retopologize a 3D mesh to optimize its topology.
@@ -163,6 +164,7 @@ async def retopologize_mesh(
             )
 
         # Create job request
+        user_id = current_user.user_id if current_user else None
         job_request = JobRequest(
             feature="mesh_retopology",
             inputs={
@@ -174,6 +176,7 @@ async def retopologize_mesh(
             model_preference=request.model_preference,
             priority=1,
             metadata={"feature_type": "mesh_retopology"},
+            user_id=user_id,
         )
 
         job_id = await scheduler.schedule_job(job_request)

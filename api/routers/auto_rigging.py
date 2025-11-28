@@ -10,7 +10,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from api.dependencies import get_scheduler
+from api.dependencies import get_current_user_or_none, get_scheduler
 from api.routers.file_upload import resolve_file_id
 from core.scheduler.job_queue import JobRequest
 from core.scheduler.multiprocess_scheduler import MultiprocessModelScheduler
@@ -102,6 +102,7 @@ class AutoRigResponse(BaseModel):
 async def generate_rig(
     request: AutoRigRequest,
     scheduler: MultiprocessModelScheduler = Depends(get_scheduler),
+    current_user = Depends(get_current_user_or_none),
 ):
     """
     Generate bone structure for a 3D mesh.
@@ -109,10 +110,13 @@ async def generate_rig(
     Args:
         request: Auto-rigging parameters
         scheduler: Model scheduler dependency
+        current_user: Current authenticated user (required if auth enabled)
 
     Returns:
         Job information for the auto-rigging task
     """
+    user_id = current_user.user_id if current_user else None
+    
     if request.rig_mode.lower() not in ["skeleton", "skin", "full"]:
         raise HTTPException(
             status_code=400,
@@ -153,6 +157,7 @@ async def generate_rig(
             model_preference=request.model_preference,
             priority=1,
             metadata={"feature_type": "auto_rig"},
+            user_id=user_id,
         )
 
         job_id = await scheduler.schedule_job(job_request)

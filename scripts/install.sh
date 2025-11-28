@@ -7,7 +7,7 @@ echo "The installation may take a while, please wait..."
 echo ""
 
 echo "[INFO] Creating conda environment '3daigc-api' with Python 3.10..."
-# conda create -n 3daigc-api python=3.10 -y
+# conda create -n 3d python=3.10 -y
 if [ $? -eq 0 ]; then
     echo "[SUCCESS] Conda environment created successfully"
 else
@@ -16,7 +16,7 @@ else
 fi
 
 echo "[INFO] Activating conda environment..."
-conda activate 3daigc-api
+# conda activate 3d
 
 echo "[INFO] Installing PyTorch with CUDA 12.1 support..."
 ## install pytorch for specific cuda versions

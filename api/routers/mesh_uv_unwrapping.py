@@ -11,7 +11,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from api.dependencies import get_scheduler
+from api.dependencies import get_current_user_or_none, get_scheduler
 from api.routers.file_upload import resolve_file_id
 from core.scheduler.job_queue import JobRequest
 from core.scheduler.multiprocess_scheduler import MultiprocessModelScheduler
@@ -123,6 +123,7 @@ class MeshUVUnwrappingResponse(BaseModel):
 async def unwrap_mesh(
     request: MeshUVUnwrappingRequest,
     scheduler: MultiprocessModelScheduler = Depends(get_scheduler),
+    current_user = Depends(get_current_user_or_none),
 ):
     """
     Generate UV coordinates for a 3D mesh.
@@ -168,6 +169,7 @@ async def unwrap_mesh(
             )
 
         # Create job request
+        user_id = current_user.user_id if current_user else None
         job_request = JobRequest(
             feature="uv_unwrapping",
             inputs={
@@ -179,6 +181,7 @@ async def unwrap_mesh(
                 "output_format": request.output_format,
             },
             model_preference=request.model_preference,
+            user_id=user_id,
             priority=1,
             metadata={"feature_type": "uv_unwrapping"},
         )

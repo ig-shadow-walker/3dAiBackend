@@ -121,13 +121,13 @@ class FastMeshRunner:
                 self.model = MODELS[model_name].from_pretrained(
                     "WopperSet/FastMesh-V1K",
                     local_dir=str(self.model_path),
-                    # cache_dir=str(self.model_path),
+                    cache_dir=str(self.model_path),
                 )
             elif self.variant == "V4K":
                 self.model = MODELS[model_name].from_pretrained(
                     "WopperSet/FastMesh-V4K",
                     local_dir=str(self.model_path),
-                    # cache_dir=str(self.model_path),
+                    cache_dir=str(self.model_path),
                 )
 
             # Prepare model with accelerator

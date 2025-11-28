@@ -102,15 +102,17 @@ RUN pip install spconv-cu120 pyrender fast-simplification python-box timm
 WORKDIR /app/thirdparty/PartPacker
 RUN pip install meshiki fpsample kiui pymcubes einops
 
-# Install PartCrafter dependencies (if requirements exist)
-WORKDIR /app/thirdparty/PartCrafter
-RUN if [ -f "requirements.txt" ]; then pip install -r requirements.txt; fi
+WORKDIR /app/thirdparty/PartUV
+RUN pip install seaborn partuv 
+
+WORKDIR /app/thirdparty/FastMesh
+RUN pip install -r requirement_extra.txt
 
 # Install main project dependencies
 WORKDIR /app
 RUN pip install -r requirements.txt
 RUN pip install -r requirements-test.txt
-RUN pip install huggingface_hub
+RUN pip install huggingface_hub transformers==4.46.0
 
 # Create necessary directories
 RUN mkdir -p /app/uploads /app/data

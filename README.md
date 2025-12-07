@@ -21,7 +21,7 @@ The system is powered with GPU resource management, concurrent and VRAM-aware GP
 ![arch](./assets/system_arch.png)
 
 ## Use Case (with Open3DStudio)
-![Open3DStudio Demo](./assets/open3dstudio_v1.0_demo_65m.gif)
+![Open3DStudio Demo](./assets/open3dstudio_v1.0_demo_41m.gif)
 
 
 ### Key Features

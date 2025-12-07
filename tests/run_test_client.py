@@ -293,10 +293,10 @@ class ComprehensiveModelTester:
             configs.extend(
                 [
                     {
-                        "test_name": f"hunyuan3d_2_0_image_to_textured_mesh_{image_files[0].stem}",
+                        "test_name": f"hunyuan3dv20_image_to_textured_mesh_{image_files[0].stem}",
                         "feature": "image_to_textured_mesh",
                         "endpoint": "/mesh-generation/image-to-textured-mesh",
-                        "model_preference": "hunyuan3d_2_0_image_to_textured_mesh",
+                        "model_preference": "hunyuan3dv20_image_to_textured_mesh",
                         "input_data": {
                             "texture_resolution": 1024,
                             "output_format": "glb",
@@ -305,10 +305,10 @@ class ComprehensiveModelTester:
                         "files_to_upload": [("image", str(image_files[0]))],
                     },
                     {
-                        "test_name": f"hunyuan3d_image_to_textured_mesh_{image_files[0].stem}",
+                        "test_name": f"hunyuan3dv20_image_to_textured_mesh_{image_files[0].stem}",
                         "feature": "image_to_textured_mesh",
                         "endpoint": "/mesh-generation/image-to-textured-mesh",
-                        "model_preference": "hunyuan3d_image_to_textured_mesh",
+                        "model_preference": "hunyuan3dv20_image_to_textured_mesh",
                         "input_data": {
                             "texture_resolution": 1024,
                             "output_format": "glb",
@@ -341,7 +341,7 @@ class ComprehensiveModelTester:
                         ],
                     },
                     {
-                        "test_name": f"hunyuan3d_image_mesh_painting_{image_file.stem}_{mesh_file.stem}",
+                        "test_name": f"hunyuan3dv20_image_mesh_painting_{image_file.stem}_{mesh_file.stem}",
                         "feature": "image_mesh_painting",
                         "endpoint": "/mesh-generation/image-mesh-painting",
                         "model_preference": "hunyuan3d_image_mesh_painting",
@@ -365,10 +365,10 @@ class ComprehensiveModelTester:
             configs.extend(
                 [
                     {
-                        "test_name": f"hunyuan3d_2_0_image_to_raw_mesh_{image_files[0].stem}",
+                        "test_name": f"hunyuan3dv20_image_to_raw_mesh_{image_files[0].stem}",
                         "feature": "image_to_raw_mesh",
                         "endpoint": "/mesh-generation/image-to-raw-mesh",
-                        "model_preference": "hunyuan3d_2_0_image_to_raw_mesh",
+                        "model_preference": "hunyuan3dv20_image_to_raw_mesh",
                         "input_data": {
                             "output_format": "glb",
                         },
@@ -376,10 +376,10 @@ class ComprehensiveModelTester:
                         "files_to_upload": [("image", str(image_files[0]))],
                     },
                     {
-                        "test_name": f"hunyuan3d_image_to_raw_mesh_{image_files[0].stem}",
+                        "test_name": f"hunyuan3dv21_image_to_raw_mesh_{image_files[0].stem}",
                         "feature": "image_to_raw_mesh",
                         "endpoint": "/mesh-generation/image-to-raw-mesh",
-                        "model_preference": "hunyuan3d_image_to_raw_mesh",
+                        "model_preference": "hunyuan3dv21_image_to_raw_mesh",
                         "input_data": {
                             "output_format": "glb",
                         },

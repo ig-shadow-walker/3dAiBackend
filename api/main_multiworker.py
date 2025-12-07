@@ -28,7 +28,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
-from core.config import create_directories, get_settings, setup_logging
+from core.config import get_settings, setup_logging #, create_directories
+from core.file_store import FileStore
 from core.scheduler.redis_job_queue import RedisJobQueue
 from core.utils.exceptions import BaseAPIException
 
@@ -48,6 +49,7 @@ logger = logging.getLogger(__name__)
 # Global variables for shared resources
 redis_job_queue = None
 auth_service = None
+file_store = None
 
 
 # Configure CORS
@@ -75,7 +77,7 @@ def configure_security(app: FastAPI, settings):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
-    global redis_job_queue, auth_service
+    global redis_job_queue, auth_service, file_store
 
     # Startup
     logger.info("Starting 3D Generative Models Backend (Multi-Worker Mode)...")
@@ -88,7 +90,7 @@ async def lifespan(app: FastAPI):
         setup_logging(settings.logging)
 
         # Create necessary directories
-        create_directories(settings.storage)
+        # create_directories(settings.storage)
 
         # Connect to Redis job queue (shared with scheduler service)
         redis_url = getattr(settings, "redis_url", "redis://localhost:6379")
@@ -104,8 +106,21 @@ async def lifespan(app: FastAPI):
         # Store job queue in app state for dependency injection
         app.state.job_queue = redis_job_queue
 
+        # Initialize file store for cross-worker file metadata sharing
+        from redis.asyncio import Redis as AsyncRedis
+        
+        logger.info("Initializing Redis-based file store...")
+        file_store_redis = AsyncRedis.from_url(redis_url, decode_responses=False)
+        file_store = FileStore(
+            redis_client=file_store_redis,
+            key_prefix="3daigc",
+            default_ttl_seconds=86400,  # 24 hours
+        )
+        app.state.file_store = file_store
+        logger.info("✓ File store initialized")
+
         # Initialize authentication service (conditionally based on settings)
-        if settings.security.user_auth_enabled:
+        if settings.user_auth_enabled:
             from redis.asyncio import Redis
             from core.auth import AuthService, UserStorage
             
@@ -127,7 +142,8 @@ async def lifespan(app: FastAPI):
         logger.info("=" * 60)
         logger.info("This worker submits jobs to Redis queue")
         logger.info("Scheduler service processes jobs independently")
-        if settings.security.user_auth_enabled:
+        logger.info(f"Debug mode: {'ENABLED' if settings.debug else 'DISABLED'}")
+        if settings.user_auth_enabled:
             logger.info("User authentication: ENABLED (Redis-based)")
             logger.info("  - Users can only see their own jobs")
             logger.info("  - Admins can see all jobs")
@@ -149,6 +165,9 @@ async def lifespan(app: FastAPI):
         # Cleanup resources
         if redis_job_queue:
             await redis_job_queue.disconnect()
+        
+        if file_store and hasattr(file_store, 'redis'):
+            await file_store.redis.aclose()
         
         if auth_service and hasattr(auth_service.storage, 'redis'):
             await auth_service.storage.redis.close()

@@ -295,7 +295,8 @@ if /I "%FORCE_DOWNLOAD%"=="false" (
 
 md "%model_dir%" 2>nul
 call :print_info "Downloading Hunyuan3D 2.1 models..."
-call huggingface-cli download tencent/Hunyuan3D-2.1 --local-dir "%model_dir%"
+@REM download from my fork which resolves the multi-gpu inference bug of the original repo 
+call huggingface-cli download fishwowater/Hunyuan3D-2.1 --local-dir "%model_dir%"
 if %ERRORLEVEL% equ 0 (
     call :print_success "Hunyuan3D 2.1 models downloaded successfully"
 ) else (

@@ -24,7 +24,7 @@ text_mesh_painting:
 
 # image-conditioned geometry generation
 image_to_raw_mesh:
-  hunyuan3d_2_0_image_to_raw_mesh:
+  hunyuan3dv20_image_to_raw_mesh:
     vram_requirement: 5120  # MB
     supported_inputs: ["image"]
     supported_outputs: ["glb", "obj"]
@@ -32,7 +32,7 @@ image_to_raw_mesh:
     enabled: true
     max_workers: 1
     
-  hunyuan3d_image_to_raw_mesh:
+  hunyuan3dv21_image_to_raw_mesh:
     vram_requirement: 8192  # MB
     supported_inputs: ["image"]
     supported_outputs: ["glb", "obj"]
@@ -58,7 +58,7 @@ image_to_textured_mesh:
     enabled: true
     max_workers: 1
 
-  hunyuan3d_2_0_image_to_textured_mesh:
+  hunyuan3dv20_image_to_textured_mesh:
     vram_requirement: 14336  # MB
     supported_inputs: ["image"]
     supported_outputs: ["glb", "obj"]
@@ -66,7 +66,7 @@ image_to_textured_mesh:
     enabled: true
     max_workers: 1
 
-  hunyuan3d_image_to_textured_mesh:
+  hunyuan3dv21_image_to_textured_mesh:
     vram_requirement: 19456  # MB
     supported_inputs: ["image"]
     supported_outputs: ["glb", "obj"]
@@ -84,7 +84,7 @@ image_mesh_painting:
     enabled: true
     max_workers: 1
 
-  hunyuan3d_2_0_image_mesh_painting:
+  hunyuan3dv20_image_mesh_painting:
     vram_requirement: 11264  # MB
     supported_inputs: ["mesh", "text", "image"]
     supported_outputs: ["glb", "obj"]
@@ -92,7 +92,7 @@ image_mesh_painting:
     enabled: true
     max_workers: 1
 
-  hunyuan3d_image_mesh_painting:
+  hunyuan3dv21_image_mesh_painting:
     vram_requirement: 12288  # MB
     supported_inputs: ["mesh", "text", "image"]
     supported_outputs: ["glb", "obj"]

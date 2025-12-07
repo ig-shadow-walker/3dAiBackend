@@ -141,7 +141,7 @@ echo "[INFO] Changing directory to thirdparty/Hunyuan3D-2.1..."
 cd ../../thirdparty/Hunyuan3D-2.1
 echo "[INFO] Installing custom rasterizer for Hunyuan3D 2.1..."
 cd hy3dpaint/custom_rasterizer
-# pip install -e .
+pip install -e .
 if [ $? -eq 0 ]; then
     echo "[SUCCESS] Hunyuan3D 2.1 custom rasterizer installed"
 else
@@ -208,7 +208,7 @@ echo "========================================"
 echo "[INFO] Changing directory to thirdparty/PartPacker..."
 cd ../../thirdparty/PartPacker
 echo "[INFO] Installing PartPacker requirements..."
-pip install meshiki fpsample kiui pymcubes einops
+pip install meshiki kiui fpsample pymcubes einops
 if [ $? -eq 0 ]; then
     echo "[SUCCESS] PartPacker requirements installed"
 else

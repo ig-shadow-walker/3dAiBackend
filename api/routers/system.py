@@ -31,6 +31,37 @@ async def health_check():
     }
 
 
+@router.get("/auth-status", summary="Get authentication status")
+async def get_auth_status(settings=Depends(get_current_settings)):
+    """
+    Get authentication and authorization status for the service.
+    
+    This endpoint is public (no authentication required) so clients can 
+    determine whether they need to authenticate before making requests.
+    
+    Returns:
+        - user_auth_enabled: Whether user authentication is enabled
+        - api_key_required: Whether API key authentication is required
+        - mode: Description of the authentication mode
+    """
+    return {
+        "user_auth_enabled": settings.user_auth_enabled,
+        "api_key_required": settings.security.api_key_required,
+        "mode": "authenticated" if settings.user_auth_enabled else "simple",
+        "description": (
+            "User authentication enabled - Users can only see their own jobs"
+            if settings.user_auth_enabled
+            else "Simple mode - All clients can see all jobs"
+        ),
+        "features": {
+            "job_isolation": settings.user_auth_enabled,
+            "user_management": settings.user_auth_enabled,
+            "role_based_access": settings.user_auth_enabled,
+        },
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+
+
 @router.get("/info", summary="System information")
 async def system_info(
     settings=Depends(get_current_settings), _: bool = Depends(verify_api_key)
@@ -773,6 +804,24 @@ async def get_job_status(job_id: str, request: Request):
                     "file_extension": Path(thumbnail_path).suffix,
                 }
 
+        # Convert input image path to URL (works for both completed and processing jobs)
+        inputs = job_status.get("inputs", {})
+        input_image_path = inputs.get("image_path")
+        if input_image_path and os.path.exists(input_image_path):
+            # Create URL for input image
+            input_image_url = f"{request.base_url}api/v1/system/jobs/{job_id}/input"
+            job_status["input_image_url"] = input_image_url
+
+            # Add input image file info
+            input_stats = os.stat(input_image_path)
+            job_status["input_image_file_info"] = {
+                "filename": os.path.basename(input_image_path),
+                "file_size_bytes": input_stats.st_size,
+                "file_size_mb": round(input_stats.st_size / (1024 * 1024), 2),
+                "content_type": get_content_type_for_file(input_image_path),
+                "file_extension": Path(input_image_path).suffix,
+            }
+
         return job_status
     except HTTPException:
         raise
@@ -1096,6 +1145,115 @@ async def download_job_thumbnail(
         traceback.print_exc()
         raise HTTPException(
             status_code=500, detail=f"Error downloading thumbnail: {str(e)}"
+        )
+
+
+@router.get("/jobs/{job_id}/input", summary="Download job input image")
+async def download_job_input(
+    job_id: str,
+    request: Request,
+    format: Optional[str] = Query(
+        None, description="Response format: 'file' (default) or 'base64'"
+    ),
+    filename: Optional[str] = Query(None, description="Custom filename for download"),
+):
+    """
+    Download the input image of a job.
+
+    Args:
+        job_id: The job ID to download input image for
+        format: Response format ('file' for direct download, 'base64' for JSON response)
+        filename: Optional custom filename for the download
+
+    Returns:
+        FileResponse for direct download or JSON with base64 data
+    """
+    try:
+        from api.dependencies import get_current_user_optional
+        from core.auth.models import UserRole
+        
+        scheduler = await get_scheduler(request)
+        job_status = await scheduler.get_job_status(job_id)
+
+        if job_status is None:
+            raise HTTPException(status_code=404, detail="Job not found")
+        
+        # User filtering: non-admin users can only access their own jobs
+        current_user = await get_current_user_optional(
+            request.headers.get("authorization"),
+            request
+        )
+        
+        if current_user:
+            job_user_id = job_status.get("user_id")
+            if current_user.role != UserRole.ADMIN and job_user_id != current_user.user_id:
+                raise HTTPException(status_code=403, detail="Access denied to this job")
+
+        # Get input image path from job inputs
+        inputs = job_status.get("inputs", {})
+        input_image_path = inputs.get("image_path")
+        
+        if not input_image_path:
+            raise HTTPException(
+                status_code=404, detail="No input image available for this job"
+            )
+
+        if not os.path.exists(input_image_path):
+            raise HTTPException(
+                status_code=404,
+                detail=f"Input image file not found at path: {input_image_path}",
+            )
+
+        # Determine the response format
+        response_format = format or "file"
+
+        if response_format == "base64":
+            # Return base64 encoded data
+            try:
+                base64_data = encode_file_to_base64(input_image_path)  # type: ignore
+                file_size_mb = get_file_size_mb(input_image_path)
+
+                return JSONResponse(
+                    {
+                        "job_id": job_id,
+                        "filename": filename or os.path.basename(input_image_path),
+                        "content_type": get_content_type_for_file(input_image_path),
+                        "file_size_mb": file_size_mb,
+                        "base64_data": base64_data,
+                        "download_time": datetime.utcnow().isoformat(),
+                    }
+                )
+            except Exception as e:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to encode input image as base64: {str(e)}",
+                )
+
+        else:
+            # Return file download
+            download_filename = (
+                filename or f"input_{job_id}_{os.path.basename(input_image_path)}"
+            )
+            content_type = get_content_type_for_file(input_image_path)
+
+            return FileResponse(
+                path=input_image_path,
+                filename=download_filename,
+                media_type=content_type,
+                headers={
+                    "X-Job-ID": job_id,
+                    "X-File-Size": str(os.path.getsize(input_image_path)),
+                },
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500, detail=f"Error downloading input image: {str(e)}"
         )
 
 

@@ -551,6 +551,18 @@ class TrellisTextMeshPaintingAdapter(TrellisTextToMeshAdapterCommon):
             "slat_decoder_mesh",
         ]
 
+    def _process_request(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process text-conditioned mesh generation using TRELLIS.
+        """
+        try:
+            # override the simplify parameter (don't do decimation on the painting task)
+            inputs["simplify"] = 0.01
+            return super()._process_request(inputs)
+        except Exception as e:
+            logger.error(f"TRELLIS text-to-mesh generation failed: {str(e)}")
+            raise Exception(f"TRELLIS text-to-mesh generation failed: {str(e)}")
+
 
 class TrellisImageToTexturedMeshAdapter(TrellisImageToMeshAdapterCommon):
     """
@@ -586,3 +598,15 @@ class TrellisImageMeshPaintingAdapter(TrellisImageToMeshAdapterCommon):
             "sparse_structure_flow_model",
             "slat_decoder_mesh",
         ]
+
+    def _process_request(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process image-conditioned texture generation using TRELLIS.
+        """
+        try:
+            # override the simplify parameter (don't do decimation on the painting task)
+            inputs["simplify"] = 0.01
+            return super()._process_request(inputs)
+        except Exception as e:
+            logger.error(f"TRELLIS image-conditioned texture generation failed: {str(e)}")
+            raise Exception(f"TRELLIS image-conditioned texture generation failed: {str(e)}")

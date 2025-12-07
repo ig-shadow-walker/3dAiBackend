@@ -15,9 +15,7 @@ import numpy as np
 import torch
 import trimesh
 from easydict import EasyDict as edict
-from lightning.pytorch import Trainer, seed_everything
-from lightning.pytorch.callbacks import ModelCheckpoint
-from lightning.pytorch.strategies import DDPStrategy
+from lightning.pytorch import seed_everything
 from plyfile import PlyData
 from scipy.sparse import coo_matrix, csr_matrix
 from scipy.sparse.csgraph import connected_components
@@ -650,31 +648,25 @@ class PartFieldRunner:
         random.seed(0)
         np.random.seed(0)
 
-        checkpoint_callbacks = [
-            ModelCheckpoint(
-                monitor="train/current_epoch",
-                dirpath=cfg.output_dir,
-                filename="{epoch:02d}",
-                save_top_k=100,
-                save_last=True,
-                every_n_epochs=cfg.save_every_epoch,
-                mode="max",
-                verbose=True,
-            )
-        ]
-
-        self.trainer = Trainer(
-            devices=-1,
-            accelerator="gpu",
-            precision="16-mixed",
-            strategy=DDPStrategy(find_unused_parameters=True),
-            max_epochs=cfg.training_epochs,
-            log_every_n_steps=1,
-            limit_train_batches=3500,
-            limit_val_batches=None,
-            callbacks=checkpoint_callbacks,
-        )
         self.cfg = cfg
+        
+        # Initialize model once during __init__
+        from partfield.model_trainer_pvcnn_only_demo import Model
+        
+        logger.info("Initializing PartField model...")
+        self.model = Model(self.cfg)
+        
+        # Load checkpoint weights directly
+        logger.info(f"Loading checkpoint from {self.cfg.continue_ckpt}")
+        checkpoint = torch.load(self.cfg.continue_ckpt, map_location="cuda")
+        if "state_dict" in checkpoint:
+            self.model.load_state_dict(checkpoint["state_dict"])
+        else:
+            self.model.load_state_dict(checkpoint)
+        
+        self.model = self.model.cuda()
+        self.model.eval()
+        logger.info("PartField model initialized and ready for inference")
 
     def run_partfield(
         self,
@@ -699,8 +691,7 @@ class PartFieldRunner:
         ply_subfolder = os.path.join(cluster_dir, "ply")
         os.makedirs(ply_subfolder, exist_ok=True)
 
-        # Step1, first make a temp directory to store only the input mesh, and update the trainer
-        # TODO: optimize the running speed here by using pure pytorch inference
+        # Step1, first make a temp directory to store only the input mesh
         mesh_name, mesh_ext = os.path.splitext(os.path.basename(mesh_path))
         # temp directory for running PartField: "exp_results/pipeline/<task_uid>/raw_geometry/"
         temp_dir = os.path.join(os.path.dirname(mesh_path), mesh_name)
@@ -715,10 +706,42 @@ class PartFieldRunner:
         self.cfg.result_name = os.path.join(
             feature_dir[len(PARTFIELD_PREFIX) :], mesh_name
         )
-        from partfield.model_trainer_pvcnn_only_demo import Model
-
-        self.model = Model(self.cfg)
-        self.trainer.predict(self.model, ckpt_path=self.cfg.continue_ckpt)
+        
+        # Get the dataloader
+        from torch.utils.data import DataLoader
+        if self.cfg.remesh_demo:
+            from partfield.dataloader import Demo_Remesh_Dataset
+            dataset = Demo_Remesh_Dataset(self.cfg)
+        elif self.cfg.correspondence_demo:
+            from partfield.dataloader import Correspondence_Demo_Dataset
+            dataset = Correspondence_Demo_Dataset(self.cfg)
+        else:
+            from partfield.dataloader import Demo_Dataset
+            dataset = Demo_Dataset(self.cfg)
+        
+        dataloader = DataLoader(
+            dataset,
+            num_workers=self.cfg.dataset.val_num_workers,
+            batch_size=self.cfg.dataset.val_batch_size,
+            shuffle=False,
+            pin_memory=True,
+            drop_last=False
+        )
+        
+        # Run inference with pre-loaded model
+        logger.info(f"Running inference on {mesh_name}...")
+        with torch.no_grad():
+            for batch_idx, batch in enumerate(dataloader):
+                # Move batch to GPU
+                for key in batch:
+                    if isinstance(batch[key], torch.Tensor):
+                        batch[key] = batch[key].cuda()
+                
+                # Call the predict_step method directly
+                self.model.predict_step(batch, batch_idx)
+        
+        logger.info(f"Inference completed for {mesh_name}")
+        
         # when finished, run clustering
         return self.solve_clustering(
             os.path.join(temp_dir, mesh_name + mesh_ext),

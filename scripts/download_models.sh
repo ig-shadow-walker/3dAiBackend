@@ -269,7 +269,9 @@ download_hunyuan21() {
     
     mkdir -p "$model_dir"
     print_info "Downloading Hunyuan3D 2.1 models..."
-    if huggingface-cli download  tencent/Hunyuan3D-2.1 --local-dir "$model_dir"; then
+    # if huggingface-cli download  tencent/Hunyuan3D-2.1 --local-dir "$model_dir"; then
+    # download from my fork, which fixes the multi-gpu inference bug of the original repo 
+    if huggingface-cli download fishwowater/Hunyuan3D-2.1 --local-dir "$model_dir"; then
         print_success "Hunyuan3D 2.1 models downloaded successfully"
     else
         print_error "Failed to download Hunyuan3D 2.1 models"

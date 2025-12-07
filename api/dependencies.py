@@ -279,6 +279,20 @@ async def check_rate_limit(
     # In production, you'd use Redis or similar for distributed rate limiting
     return True
 
+
+async def get_file_store(request: Request):
+    """
+    Get the FileStore instance from app state.
+    
+    Returns the Redis-backed FileStore in multi-worker mode, or None in single-worker mode.
+    The file_upload router handles both cases - using Redis when available, falling back
+    to in-memory storage for single-worker mode.
+    
+    Returns:
+        FileStore instance or None
+    """
+    return getattr(request.app.state, "file_store", None)
+
 class CommonQueryParams:
     """Common query parameters for API endpoints"""
     def __init__(
@@ -304,7 +318,7 @@ async def get_auth_service(request: Request):
     """
     settings = get_settings()
     
-    if not settings.security.user_auth_enabled:
+    if not settings.user_auth_enabled:
         raise HTTPException(
             status_code=503,
             detail="User authentication is disabled on this server. Enable it in configuration."
@@ -341,7 +355,7 @@ async def get_current_user(
     settings = get_settings()
     
     # Check if user auth is enabled
-    if not settings.security.user_auth_enabled:
+    if not settings.user_auth_enabled:
         raise HTTPException(
             status_code=503,
             detail="User authentication is disabled on this server."
@@ -398,7 +412,7 @@ async def get_current_user_optional(
     settings = get_settings()
     
     # If user auth is disabled, return None (no filtering)
-    if not settings.security.user_auth_enabled:
+    if not settings.user_auth_enabled:
         return None
     
     if not authorization:
@@ -460,7 +474,7 @@ async def get_current_user_or_none(
     """
     settings = get_settings()
     
-    if settings.security.user_auth_enabled:
+    if settings.user_auth_enabled:
         # Authentication is REQUIRED when user_auth_enabled=True
         return await get_current_user(authorization, request)
     else:

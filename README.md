@@ -1,55 +1,28 @@
 # 3DAIGC-API: Scalable 3D Generative AI Backend
-
-
-[中文 README](README_zh.md)
-
-[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.10-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![GitHub Stars](https://img.shields.io/github/stars/FishWoWater/3DAIGC-API.svg)](https://github.com/FishWoWater/3DAIGC-API/stargazers)
-[![Code Size](https://img.shields.io/github/repo-size/FishWoWater/3DAIGC-API.svg)](https://github.com/FishWoWater/3DAIGC-API)
+[![Docker Hub](https://img.shields.io/docker/v/fishwowater/3daigc-api?label=Docker%20Hub&logo=docker)](https://hub.docker.com/r/fishwowater/3daigc-api)
+[![Open3DStudio](https://img.shields.io/badge/YouTube-Open3DStudio-red?style=for-the-badge&logo=youtube)](https://youtu.be/LNteOF3XmmI)
 
-A **self-hosted** scalable FastAPI backend server framework for 3D generative AI models, with all of them ported to API-ready inference services, powered with GPU resource management and VRAM-aware scheduling.
-> *Note:* This project is still under active development and may contain breaking changes.
+A **self-hosted, comprehensive and scalable** FastAPI backend server framework for 3D generative AI models, with all of them ported to API-ready inference services
+
+The system is powered with GPU resource management, concurrent and VRAM-aware GPU scheduling. It can be used together with **Open3DStudio, an open-source replicate of TripoStudio**.
+
+## CHANGELOG
+#### Updates 12.03
+* Support running in **authorization mode**(need register/login/API token) besides the annonymous mode(all clients see all jobs)
+* Separate the router layer from the scheduler layer, allowing multiple uvicorn workers, which **improves concurreny in terms of normal requests** like job polling and downloading.
+* Fix concurreny issues of the scheduler, allowing **multiple workers across multiple GPUs executing jobs at the same time (same model or not), largely boosting computational throughput**.
+* Support **docker(one-line command to start up)**, where the redis-server, api worker, scheduler work as separate services.
+
 
 ## System Architecture
-The system provides a unified API gateway for multiple 3D AI models with automatic resource management:
+![arch](./assets/system_arch.png)
 
-```
-          ┌─────────────────┐        ┌────────────────┐
-          │   Client Apps   │        │  Web FrontEnd  │
-          └─────────┬───────┘        └────────┬───────┘
-                    │                         │
-                    └─────────────────────────┘
-                                 │
-                    ┌────────────▼────────────┐
-                    │    FastAPI Gateway      │
-                    │   (Main Entry Point)    │
-                    └────────────┬────────────┘
-                                 │
-              ┌──────────────────┼──────────────────┐
-              │                  │                  │
-    ┌─────────▼─────────┐ ┌─────▼─────┐ ┌─────────▼────────┐
-    │       Router      │ │ Auth/Rate │ │   Job Scheduler  │
-    │    & Validator    │ │ Limit(TBD)│ │    & Queue       │
-    └─────────┬─────────┘ └───────────┘ └─────────┬────────┘
-              │                                   │
-              └───────────────┬───────────────────┘
-                              │
-                 ┌────────────▼────────────┐
-                 │ Multiprocess Scheduler  |
-                 │    (GPU Scheduling)     │
-                 └────────────┬────────────┘
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        │                     │                     │
-┌───────▼───────┐    ┌────────▼────────┐   ┌────────▼────────┐
-│  GPU Worker   │    │   GPU Worker    │   │   GPU Worker    │
-│   (VRAM: 8GB) │    │  (VRAM: 24GB)   │   │  (VRAM: 4GB)    │
-│     TRELLIS   │    │  Hunyuan3D-2.1  │   │ UniRig/PartField│
-│     MeshGen   |    │      MeshGen    │   | AutoRig/MeshSeg │
-└───────────────┘    └─────────────────┘   └─────────────────┘
-```
+## Use Case (with Open3DStudio)
+![Open3DStudio Demo](./assets/open3dstudio_v1.0_demo_65m.gif)
+
 
 ### Key Features
 - **VRAM-Aware Scheduling**: Intelligent GPU resource allocation based on model requirements
@@ -105,13 +78,24 @@ The VRAM requirement is from the pytest results, tested on a single 4090 GPU.
 
 
 ## Quick Start
+### Docker (Recommended)
+```shell
+# start up the service in the background
+# docker will check local images -> pull images -> build
+docker compose up -d 
+# force build 
+docker compose up --build 
 
-### Prerequisites
+# enable the user management 
+P3D_USER_AUTH_ENABLED=True docker compose up -d 
+```
+
+### Manual Installation
+#### Prerequisites
 - Python 3.10+
 - CUDA-compatible GPU (each model has its own VRAM requirement)
 - Linux (tested on Ubuntu 20.04 and CentOS8)
 
-### Installation
 1. **Clone the repository**:
 ```bash
 # clone this repo recursively 
@@ -150,7 +134,7 @@ chmod +x download_models.sh
 .\scripts\download_models.bat
 ```
 
-### Running the Server
+#### Running the Server(Single-Worker Mode)
 ```bash
 # on linux 
 chmod +x scripts/run_server.sh
@@ -164,10 +148,14 @@ P3D_HOST=0.0.0.0 P3D_PORT=7842  ./scripts/run_server.sh
 # or on windows 
 .\scripts\run_server.bat 
 ```
+#### Running the Server (Multi-Worker Mode, Recommended)
+```bash 
+chmod a+x ./scripts/run_multiwork.sh
+./scripts/run_multiworker.sh
+```
+
+
 The server will be available at `http://localhost:7842` by default.
-
-### API Documentation
-
 Once the server is running, visit:
 - **Interactive API docs**: `http://localhost:7842/docs`
 - **ReDoc documentation**: `http://localhost:7842/redoc`
@@ -227,6 +215,32 @@ curl -X GET "http://localhost:7842/api/v1/system/models"
   ],
   "total_features":8
 }
+```
+</details>
+
+### User Management
+<details>
+<summary>User Register</summary>
+
+```bash
+# user register
+curl -X POST http://localhost:7842/api/v1/users/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"alice","email":"alice@example.com","password":"secret123"}'
+```
+</details>
+
+<br>
+<details>
+<summary> User Login and Get Token</summary>
+
+```bash 
+# login and get token
+TOKEN=$(curl -s -X POST http://localhost:7842/api/v1/users/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"alice","password":"secret123"}' | jq -r '.token')
+
+echo "Your token: $TOKEN"
 ```
 </details>
 
@@ -463,8 +477,28 @@ The tests based on `curl` is also provided at [curl_tests](./tests/curl/)
 2. Register the model in `config/models.yaml` and model factory `core/scheduler/model_factory.py`
 3. Add adapter test and/or integration tests in `tests`
 
+## User Management (Optional)
+
+The system supports optional user authentication and job isolation. When disabled (default), all clients can see all jobs. When enabled, users can only see their own jobs.
+
+```bash
+# Enable `user_auth_enabled` under `config/system.yaml`
+uvicorn api.main_multiworker:app --workers 4
+
+# Create first admin user (when auth is enabled)
+python scripts/create_admin_user.py
+```
+
+**Key Features:**
+- Token-based authentication (Bearer tokens)
+- Role-based access (USER, ADMIN)
+- Jobs automatically linked to users
+- Redis-based storage (no extra database needed)
+
+For full documentation, see [User Management Guide](./docs/user_management.md).
+
 ## Notes 
-1. Current system **ONLY SUPPORTS A SINGLE UVICORN WORKER**. Multiple workers hold multiple scheduler instances and break everything. But since AI inference is GPU-intensive and the worker is used to address web requests, so that **won't be the bottleneck** in small-scale use.
+1. The system supports both **single-worker** (`api/main.py`) and **multi-worker** (`api/main_multiworker.py` + `scripts/scheduler_service.py`) deployment modes. For production with multiple workers, use the multi-worker setup with Redis.
 2. Frequently loading/unloading models is very slow (as can be observed in the test client). Better to enable ONLY required models and always keep them in the VRAM in practice.
 3. A lot of the code is written by vibe coding (Cursor + Claude4), Claude4 is a good software engineer, and I have learnt a lot from him/her in system design. Have a look at [vibe coding prompt](./docs/vibe_coding_prompt.md) and [vibe coding READMEs](./docs/vibe_coding/) if interested.
 
@@ -477,8 +511,9 @@ The tests based on `curl` is also provided at [curl_tests](./tests/curl/)
 ### Long-Term 
 - [x] Job queue and scheduler switches to sql
 - [x] Based on this collection of 3D API, replicate/implement a similar 3D studio like Tripo/Hunyuan, where the frontend and the backend can BOTH be deployed easily on personal PCs
+- [x] Multi-worker deployment support with Redis-based job queue (router layer separated from scheduler layer)
+- [x] User authentication and job isolation system
 - [ ] Windows one-click installer
-- [ ] Separate Job management/queries from AI inference processing (lightweight service layers)
 
 ## License
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.

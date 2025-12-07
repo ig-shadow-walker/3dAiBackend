@@ -223,7 +223,7 @@ class Hunyuan3DV21ImageToRawMeshAdapter(Hunyuan3DV21ImageToMeshAdapterCommon):
     """
 
     FEATURE_TYPE = "image_to_raw_mesh"
-    MODEL_ID = "hunyuan3d_image_to_raw_mesh"
+    MODEL_ID = "hunyuan3dv21_image_to_raw_mesh"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -307,7 +307,7 @@ class Hunyuan3DV21ImageToTexturedMeshAdapter(Hunyuan3DV21ImageToMeshAdapterCommo
     """
 
     FEATURE_TYPE = "image_to_textured_mesh"
-    MODEL_ID = "hunyuan3d_image_to_textured_mesh"
+    MODEL_ID = "hunyuan3dv21_image_to_textured_mesh"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -417,7 +417,9 @@ class Hunyuan3DV21ImageToTexturedMeshAdapter(Hunyuan3DV21ImageToMeshAdapterCommo
             return response
 
         except Exception as e:
-            logger.error(f"Hunyuan3D 2.1 textured mesh generation failed: {str(e)}")
+            import traceback 
+            trace = traceback.format_exc()
+            logger.error(f"Hunyuan3D 2.1 textured mesh generation failed: {str(e)} with trace: {trace}")
             raise Exception(f"Hunyuan3D 2.1 textured mesh generation failed: {str(e)}")
 
 
@@ -430,7 +432,7 @@ class Hunyuan3DV21ImageMeshPaintingAdapter(Hunyuan3DV21ImageToMeshAdapterCommon)
     """
 
     FEATURE_TYPE = "image_mesh_painting"
-    MODEL_ID = "hunyuan3d_image_mesh_painting"
+    MODEL_ID = "hunyuan3dv21_image_mesh_painting"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

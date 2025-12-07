@@ -8,6 +8,15 @@ This API provides scalable 3D AI model inference capabilities with VRAM-aware sc
 **API Version**: v1
 **Documentation**: `/docs` (Swagger UI) or `/redoc` (ReDoc)
 
+## Authentication (Optional)
+
+User authentication is **optional** and controlled by the `user_auth_enabled` flag:
+
+- **When disabled (default)**: No authentication required, all users see all jobs
+- **When enabled**: Token-based authentication required, users only see their own jobs
+
+See [User Management Endpoints](#user-management-endpoints-optional) for registration and login.
+
 ## File Upload System
 
 The API supports file uploads for images and meshes, returning unique file IDs that can be used in subsequent API calls. Files are automatically cleaned up after 24 hours.
@@ -368,6 +377,135 @@ All API responses follow a consistent format:
 }
 ```
 
+## User Management Endpoints (Optional)
+
+These endpoints are available when user authentication is enabled (`user_auth_enabled: true`).
+
+### Register User
+- **URL**: `/api/v1/users/register`
+- **Method**: `POST`
+- **Description**: Register a new user account
+- **Authentication**: Required if user_auth_enabled is true
+- **Request Body**:
+```json
+{
+  "username": "john",
+  "email": "john@example.com",
+  "password": "secret123"
+}
+```
+- **Response**:
+```json
+{
+  "success": true,
+  "message": "User registered successfully. Please login to get an API token.",
+  "user": {
+    "user_id": "user_abc123",
+    "username": "john",
+    "email": "john@example.com",
+    "role": "user"
+  }
+}
+```
+
+### Login
+- **URL**: `/api/v1/users/login`
+- **Method**: `POST`
+- **Description**: Login and receive an API token
+- **Authentication**: Required if user_auth_enabled is true
+- **Request Body**:
+```json
+{
+  "username": "john",
+  "password": "secret123"
+}
+```
+- **Response**:
+```json
+{
+  "user": {...},
+  "token": "abc123xyz789...",
+  "token_name": "Login token - john",
+  "message": "Login successful. Use this token in Authorization header."
+}
+```
+
+### Get Current User Profile
+- **URL**: `/api/v1/users/me`
+- **Method**: `GET`
+- **Description**: Get profile of authenticated user
+- **Authentication**: Required (Bearer token)
+- **Headers**: `Authorization: Bearer <token>`
+- **Response**:
+```json
+{
+  "success": true,
+  "user": {
+    "user_id": "user_abc123",
+    "username": "john",
+    "email": "john@example.com",
+    "role": "user"
+  }
+}
+```
+
+### Change Password
+- **URL**: `/api/v1/users/me/password`
+- **Method**: `PUT`
+- **Description**: Change user password
+- **Authentication**: Required (Bearer token)
+- **Request Body**:
+```json
+{
+  "old_password": "secret123",
+  "new_password": "newsecret456"
+}
+```
+
+### List User's API Tokens
+- **URL**: `/api/v1/users/tokens`
+- **Method**: `GET`
+- **Description**: List all tokens for current user
+- **Authentication**: Required (Bearer token)
+
+### Create New API Token
+- **URL**: `/api/v1/users/tokens`
+- **Method**: `POST`
+- **Description**: Create a new API token
+- **Authentication**: Required (Bearer token)
+- **Request Body**:
+```json
+{
+  "token_name": "My App Token",
+  "expires_in_days": 365
+}
+```
+
+### Usage Example with Authentication
+```bash
+# 1. Register
+curl -X POST "http://localhost:7842/api/v1/users/register" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"alice","email":"alice@example.com","password":"secret123"}'
+
+# 2. Login and get token
+TOKEN=$(curl -s -X POST "http://localhost:7842/api/v1/users/login" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"alice","password":"secret123"}' | jq -r '.token')
+
+# 3. Submit job with authentication
+curl -X POST "http://localhost:7842/api/v1/mesh-generation/text-to-raw-mesh" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"text_prompt":"a 3d cat","output_format":"glb"}'
+
+# 4. Get job status (only your jobs visible)
+curl -X GET "http://localhost:7842/api/v1/system/jobs/{job_id}" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+---
+
 ## File Upload Endpoints
 
 ### Upload Image
@@ -439,7 +577,7 @@ All API responses follow a consistent format:
 - **URL**: `/api/v1/mesh-generation/text-to-raw-mesh`
 - **Method**: `POST`
 - **Description**: Generate a 3D mesh from text description
-- **Authentication**: None required
+- **Authentication**: Required if user_auth_enabled is true
 - **Request Body**:
 ```json
 {
@@ -461,7 +599,7 @@ All API responses follow a consistent format:
 - **URL**: `/api/v1/mesh-generation/text-to-textured-mesh`
 - **Method**: `POST`
 - **Description**: Generate a textured 3D mesh from text description
-- **Authentication**: None required
+- **Authentication**: Required if user_auth_enabled is true
 - **Request Body**:
 ```json
 {
@@ -500,7 +638,7 @@ All API responses follow a consistent format:
 - **URL**: `/api/v1/mesh-generation/text-mesh-painting`
 - **Method**: `POST`
 - **Description**: Apply texture to an existing mesh using text description
-- **Authentication**: None required
+- **Authentication**: Required if user_auth_enabled is true
 - **Request Body**:
 ```json
 {
@@ -530,7 +668,7 @@ All API responses follow a consistent format:
 - **URL**: `/api/v1/mesh-generation/image-to-raw-mesh`
 - **Method**: `POST`
 - **Description**: Generate a 3D mesh from an image
-- **Authentication**: None required
+- **Authentication**: Required if user_auth_enabled is true
 - **Request Body**:
 ```json
 {
@@ -558,7 +696,7 @@ All API responses follow a consistent format:
 - **URL**: `/api/v1/mesh-generation/image-to-textured-mesh`
 - **Method**: `POST`
 - **Description**: Generate a textured 3D mesh from an image
-- **Authentication**: None required
+- **Authentication**: Required if user_auth_enabled is true
 - **Request Body**:
 ```json
 {
@@ -590,7 +728,7 @@ All API responses follow a consistent format:
 - **URL**: `/api/v1/mesh-generation/image-mesh-painting`
 - **Method**: `POST`
 - **Description**: Apply texture to an existing mesh using an image
-- **Authentication**: None required
+- **Authentication**: Required if user_auth_enabled is true
 - **Request Body**:
 ```json
 {
@@ -622,7 +760,7 @@ All API responses follow a consistent format:
 - **URL**: `/api/v1/mesh-generation/part-completion`
 - **Method**: `POST`
 - **Description**: Complete missing parts of a 3D mesh
-- **Authentication**: None required
+- **Authentication**: Required if user_auth_enabled is true
 - **Request Body**:
 ```json
 {
@@ -679,7 +817,7 @@ All API responses follow a consistent format:
 - **URL**: `/api/v1/mesh-segmentation/segment-mesh`
 - **Method**: `POST`
 - **Description**: Segment a 3D mesh into semantic parts
-- **Authentication**: None required
+- **Authentication**: Required if user_auth_enabled is true
 - **Request Body**:
 ```json
 {
@@ -729,7 +867,7 @@ All API responses follow a consistent format:
 - **URL**: `/api/v1/auto-rigging/generate-rig`
 - **Method**: `POST`
 - **Description**: Generate bone structure for a 3D mesh
-- **Authentication**: None required
+- **Authentication**: Required if user_auth_enabled is true
 - **Request Body**:
 ```json
 {
@@ -760,7 +898,7 @@ All API responses follow a consistent format:
 - **URL**: `/api/v1/auto-rigging/upload-mesh`
 - **Method**: `POST`
 - **Description**: Upload a mesh file for auto-rigging
-- **Authentication**: None required
+- **Authentication**: Required if user_auth_enabled is true
 - **Request Body**: `multipart/form-data`
   - `file`: Mesh file (OBJ, GLB, FBX)
 - **Response**:
@@ -794,7 +932,7 @@ All API responses follow a consistent format:
 - **URL**: `/api/v1/mesh-retopology/retopologize-mesh`
 - **Method**: `POST`
 - **Description**: Optimize mesh topology by reducing polygon count while preserving shape
-- **Authentication**: None required
+- **Authentication**: Required if user_auth_enabled is true
 - **Request Body**:
 ```json
 {
@@ -889,7 +1027,7 @@ All API responses follow a consistent format:
 - **URL**: `/api/v1/mesh-uv-unwrapping/unwrap-mesh`
 - **Method**: `POST`
 - **Description**: Generate optimized UV coordinates for a 3D mesh using part-based unwrapping
-- **Authentication**: None required
+- **Authentication**: Required if user_auth_enabled is true
 - **Request Body**:
 ```json
 {

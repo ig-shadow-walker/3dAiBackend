@@ -74,6 +74,15 @@ data/
 uploads/
 models/
 
+# Pretrained models directory (too large, should be downloaded or mounted)
+pretrained/tencent
+pretrained/dinov2-giant
+pretrained/FastMesh*
+pretrained/PartPacker
+pretrained/UniRig
+pretrained/TRELLIS
+pretrained/HoloPart
+
 # Docker files
 Dockerfile*
 docker-compose*.yml 

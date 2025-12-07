@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
-from core.config import create_directories, get_settings, setup_logging
+from core.config import get_settings, setup_logging #, create_directories
 from core.scheduler import GPUMonitor
 from core.scheduler.scheduler_factory import (
     create_development_scheduler,
@@ -80,7 +80,7 @@ async def lifespan(app: FastAPI):
         setup_logging(settings.logging)
 
         # Create necessary directories
-        create_directories(settings.storage)
+        # create_directories(settings.storage)
 
         # Initialize GPU monitor and scheduler
         gpu_monitor = GPUMonitor(memory_buffer=1024)  # Keep 1GB free

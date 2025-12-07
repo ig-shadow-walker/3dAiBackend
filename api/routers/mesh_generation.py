@@ -14,8 +14,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from api.dependencies import get_current_user_or_none, get_scheduler
-from api.routers.file_upload import resolve_file_id
+from api.dependencies import get_current_user_or_none, get_file_store, get_scheduler
+from api.routers.file_upload import resolve_file_id_async
+from core.file_store import FileStore
 from core.scheduler.job_queue import JobRequest
 from core.scheduler.multiprocess_scheduler import MultiprocessModelScheduler
 from core.utils.file_utils import save_base64_file, save_upload_file
@@ -349,6 +350,7 @@ async def process_file_input(
     file_id: Optional[str] = None,
     upload_file: Optional[UploadFile] = None,
     input_type: str = "image",
+    file_store: Optional[FileStore] = None,
 ) -> str:
     """Process various file input formats and return the processed file path"""
 
@@ -384,8 +386,8 @@ async def process_file_input(
             return str(file_info["file_path"])
 
         elif file_id:
-            # Process file ID
-            resolved_path = resolve_file_id(file_id)
+            # Process file ID (uses Redis in multi-worker mode)
+            resolved_path = await resolve_file_id_async(file_id, file_store)
             if not resolved_path:
                 raise HTTPException(
                     status_code=404,
@@ -399,9 +401,15 @@ async def process_file_input(
             return str(file_info["file_path"])
         else:
             raise HTTPException(status_code=400, detail="No input provided")
-
+    except HTTPException as he:
+        import traceback 
+        trace = traceback.format_exc()
+        logger.error(f"Error processing {input_type} input: {str(he)} {trace}")
+        raise he
     except Exception as e:
-        logger.error(f"Error processing {input_type} input: {str(e)}")
+        import traceback 
+        trace = traceback.format_exc()
+        logger.error(f"Error processing {input_type} input: {str(e)} {trace}")
         raise HTTPException(
             status_code=400, detail=f"Error processing {input_type}: {str(e)}"
         )
@@ -522,6 +530,7 @@ async def text_mesh_painting(
     mesh_request: TextMeshPaintingRequest,
     scheduler: MultiprocessModelScheduler = Depends(get_scheduler),
     current_user = Depends(get_current_user_or_none),
+    file_store: Optional[FileStore] = Depends(get_file_store),
 ):
     """
     Texture a 3D mesh from text description.
@@ -548,6 +557,7 @@ async def text_mesh_painting(
             base64_data=mesh_request.mesh_base64,
             file_id=mesh_request.mesh_file_id,
             input_type="mesh",
+            file_store=file_store,
         )
 
         job_request = JobRequest(
@@ -586,6 +596,7 @@ async def image_to_raw_mesh(
     mesh_request: ImageToRawMeshRequest,
     scheduler: MultiprocessModelScheduler = Depends(get_scheduler),
     current_user = Depends(get_current_user_or_none),
+    file_store: Optional[FileStore] = Depends(get_file_store),
 ):
     """
     Generate a 3D mesh from image.
@@ -612,6 +623,7 @@ async def image_to_raw_mesh(
             base64_data=mesh_request.image_base64,
             file_id=mesh_request.image_file_id,
             input_type="image",
+            file_store=file_store,
         )
 
         job_request = JobRequest(
@@ -647,6 +659,7 @@ async def image_to_textured_mesh(
     mesh_request: ImageToTexturedMeshRequest,
     scheduler: MultiprocessModelScheduler = Depends(get_scheduler),
     current_user = Depends(get_current_user_or_none),
+    file_store: Optional[FileStore] = Depends(get_file_store),
 ):
     """
     Generate a 3D textured mesh from image.
@@ -673,6 +686,7 @@ async def image_to_textured_mesh(
             base64_data=mesh_request.image_base64,
             file_id=mesh_request.image_file_id,
             input_type="image",
+            file_store=file_store,
         )
 
         # Process texture image if provided
@@ -683,6 +697,7 @@ async def image_to_textured_mesh(
                 base64_data=mesh_request.texture_image_base64,
                 file_id=mesh_request.texture_image_file_id,
                 input_type="texture_image",
+                file_store=file_store,
             )
 
         job_request = JobRequest(
@@ -720,6 +735,7 @@ async def image_mesh_painting(
     mesh_request: ImageMeshPaintingRequest,
     scheduler: MultiprocessModelScheduler = Depends(get_scheduler),
     current_user = Depends(get_current_user_or_none),
+    file_store: Optional[FileStore] = Depends(get_file_store),
 ):
     """
     Texture a 3D mesh using an image.
@@ -746,6 +762,7 @@ async def image_mesh_painting(
             base64_data=mesh_request.image_base64,
             file_id=mesh_request.image_file_id,
             input_type="image",
+            file_store=file_store,
         )
 
         # Process mesh input
@@ -754,6 +771,7 @@ async def image_mesh_painting(
             base64_data=mesh_request.mesh_base64,
             file_id=mesh_request.mesh_file_id,
             input_type="mesh",
+            file_store=file_store,
         )
 
         job_request = JobRequest(
@@ -791,6 +809,7 @@ async def part_completion(
     mesh_request: PartCompletionRequest,
     scheduler: MultiprocessModelScheduler = Depends(get_scheduler),
     current_user = Depends(get_current_user_or_none),
+    file_store: Optional[FileStore] = Depends(get_file_store),
 ):
     """
     Complete a part of a 3D mesh.
@@ -809,6 +828,7 @@ async def part_completion(
             base64_data=mesh_request.mesh_base64,
             file_id=mesh_request.mesh_file_id,
             input_type="mesh",
+            file_store=file_store,
         )
 
         job_request = JobRequest(

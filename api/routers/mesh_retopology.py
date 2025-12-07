@@ -11,8 +11,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from api.dependencies import get_current_user_or_none, get_scheduler
-from api.routers.file_upload import resolve_file_id
+from api.dependencies import get_current_user_or_none, get_file_store, get_scheduler
+from api.routers.file_upload import resolve_file_id_async
+from core.file_store import FileStore
 from core.scheduler.job_queue import JobRequest
 from core.scheduler.multiprocess_scheduler import MultiprocessModelScheduler
 
@@ -119,6 +120,7 @@ async def retopologize_mesh(
     request: MeshRetopologyRequest,
     scheduler: MultiprocessModelScheduler = Depends(get_scheduler),
     current_user = Depends(get_current_user_or_none),
+    file_store: Optional[FileStore] = Depends(get_file_store),
 ):
     """
     Retopologize a 3D mesh to optimize its topology.
@@ -143,8 +145,8 @@ async def retopologize_mesh(
         mesh_file_path = None
 
         if request.mesh_file_id:
-            # Handle file ID
-            mesh_file_path = resolve_file_id(request.mesh_file_id)
+            # Handle file ID (uses Redis in multi-worker mode)
+            mesh_file_path = await resolve_file_id_async(request.mesh_file_id, file_store)
             if not mesh_file_path:
                 raise HTTPException(
                     status_code=404, detail="Mesh file not found or expired"

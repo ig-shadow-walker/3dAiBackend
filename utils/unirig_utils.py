@@ -297,6 +297,7 @@ class UniRigInferenceEngine:
 
         # Check if already processed
         raw_data_path = os.path.join(output_dir, "raw_data.npz")
+        self.logger.info(f"RawData expected to be found at {raw_data_path} but not found")
         if os.path.exists(raw_data_path):
             self.logger.info(f"Found existing processed data: {raw_data_path}")
             return output_dir
@@ -305,8 +306,8 @@ class UniRigInferenceEngine:
         os.makedirs(output_dir, exist_ok=True)
 
         # Use extract_builtin to process the file
-        files = [(input_path, output_dir)]  # List of (input_file, output_dir) tuples
-
+        files = [(os.path.abspath(input_path), output_dir)]  # List of (input_file, output_dir) tuples
+        self.logger.info(f"files to process: {files} ")
         try:
             extract_builtin(
                 output_folder=cache_dir,
@@ -355,6 +356,7 @@ class UniRigInferenceEngine:
         # Get processed data directory from input path
         file_name = os.path.basename(input_path)
         file_name_without_ext = ".".join(file_name.split(".")[:-1])
+        # Pre-processed data is expected to be existing there
         processed_dir = os.path.join(self.config.cache_dir, file_name_without_ext)
 
         # Verify processed data exists
@@ -605,7 +607,7 @@ class UniRigInferenceEngine:
         skin_result = self.generate_skin_weights(
             input_path=skeleton_result,
             output_dir=output_dir,
-            output_filename=output_filename,
+            output_filename=skeleton_result,
             **kwargs,
         )
 

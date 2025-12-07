@@ -9,41 +9,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
 
-
-class GPUConfig(BaseSettings):
-    auto_detect: bool = True
-    memory_buffer: int = 300  # MB to keep free
-    max_utilization: float = 1.0
-
-
-class SchedulerConfig(BaseSettings):
-    queue_size: int = 1000
-    job_timeout: int = 1800  # 30 minutes
-    cleanup_interval: int = 300  # 5 minutes
-    priority_weights: Dict[str, float] = {
-        "mesh_generation": 1.0,
-        "texture_generation": 0.8,
-        "segmentation": 0.6,
-        "auto_rigging": 0.4,
-    }
-
-
-class StorageConfig(BaseSettings):
-    input_dir: str = "/tmp/inputs"
-    output_dir: str = "/tmp/outputs"
-    log_dir: str = "logs"
-    cleanup_after: int = 3600  # 1 hour
-    max_file_size: str = "500MB"
-
-
-class ServerConfig(BaseSettings):
-    host: str = "0.0.0.0"
-    port: int = 7842
-    workers: int = 4
-    max_request_size: str = "100MB"
-    timeout: int = 300
-
-
 class LoggingConfig(BaseSettings):
     """Enhanced logging configuration that supports both simple and dictConfig formats"""
 
@@ -57,17 +22,13 @@ class LoggingConfig(BaseSettings):
 
 
 class SecurityConfig(BaseSettings):
-    api_key_required: bool = False
     rate_limit_per_minute: int = 60
     cors_origins: List[str] = ["*"]
-    jwt_secret: Optional[str] = None
-    # User management settings
-    user_auth_enabled: bool = True  # Enable user authentication and job isolation
+    api_key_required: bool = False
 
 
 class ModelConfig(BaseSettings):
     """Configuration for a single model"""
-
     vram_requirement: int
     supported_inputs: List[str]
     supported_outputs: List[str]
@@ -79,13 +40,17 @@ class ModelConfig(BaseSettings):
 
 
 class Settings(BaseSettings):
-    """Main settings class"""
-
+    """Main settings class
+    
+    Environment variables:
+        P3D_DEBUG: Enable debug mode (default: False)
+        P3D_USER_AUTH_ENABLED: Enable user authentication (default: False)
+    """
     # Core configurations
-    server: ServerConfig = ServerConfig()
-    gpu: GPUConfig = GPUConfig()
-    scheduler: SchedulerConfig = SchedulerConfig()
-    storage: StorageConfig = StorageConfig()
+    # server: ServerConfig = ServerConfig()
+    # gpu: GPUConfig = GPUConfig()
+    # scheduler: SchedulerConfig = SchedulerConfig()
+    # storage: StorageConfig = StorageConfig()
     logging: LoggingConfig = LoggingConfig()
     security: SecurityConfig = SecurityConfig()
 
@@ -99,6 +64,9 @@ class Settings(BaseSettings):
     # Redis configuration (for multi-worker deployments)
     redis_url: str = "redis://localhost:6379"
     redis_enabled: bool = False  # Enable Redis-based job queue for multi-worker support
+    
+    # Essential configuration parameters (exposed via CLI/env vars)
+    user_auth_enabled: bool = False  # Top-level for easier CLI access
 
     model_config = SettingsConfigDict(env_prefix="P3D_", case_sensitive=False)
 
@@ -153,14 +121,14 @@ def load_config_from_file(config_path: str) -> Settings:
         settings = Settings()
 
         # Update configurations if they exist in the file
-        if "server" in config_data:
-            settings.server = ServerConfig(**config_data["server"])
-        if "gpu" in config_data:
-            settings.gpu = GPUConfig(**config_data["gpu"])
-        if "scheduler" in config_data:
-            settings.scheduler = SchedulerConfig(**config_data["scheduler"])
-        if "storage" in config_data:
-            settings.storage = StorageConfig(**config_data["storage"])
+        # if "server" in config_data:
+            # settings.server = ServerConfig(**config_data["server"])
+        # if "gpu" in config_data:
+            # settings.gpu = GPUConfig(**config_data["gpu"])
+        # if "scheduler" in config_data:
+            # settings.scheduler = SchedulerConfig(**config_data["scheduler"])
+        # if "storage" in config_data:
+            # settings.storage = StorageConfig(**config_data["storage"])
         if "logging" in config_data:
             settings.logging = LoggingConfig(**config_data["logging"])
         if "security" in config_data:
@@ -251,6 +219,10 @@ def get_settings() -> Settings:
 
         settings = load_config_from_file(str(system_config))
 
+        # If user authorization is turned on, force API key 
+        if settings.user_auth_enabled:
+            settings.security.api_key_required = True
+
         # Load models separately if exists
         if models_config.exists():
             models = load_models_config(str(models_config))
@@ -314,14 +286,14 @@ def setup_logging(config: LoggingConfig):
     )
 
 
-def create_directories(storage_config: StorageConfig):
-    """Create necessary directories"""
-    directories = [
-        storage_config.input_dir,
-        storage_config.output_dir,
-        storage_config.log_dir,
-    ]
+# def create_directories(storage_config: StorageConfig):
+#     """Create necessary directories"""
+#     directories = [
+#         storage_config.input_dir,
+#         storage_config.output_dir,
+#         storage_config.log_dir,
+#     ]
 
-    for directory in directories:
-        Path(directory).mkdir(parents=True, exist_ok=True)
-        logger.debug(f"Created/verified directory: {directory}")
+#     for directory in directories:
+#         Path(directory).mkdir(parents=True, exist_ok=True)
+#         logger.debug(f"Created/verified directory: {directory}")

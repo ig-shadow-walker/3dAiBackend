@@ -2,8 +2,54 @@
 
 # Multi-Worker Deployment Script for 3D Generative Models Backend
 # This script starts both the scheduler service and multiple FastAPI workers
+#
+# Usage:
+#   ./scripts/run_multiworker.sh [OPTIONS]
+#
+# Options:
+#   --user-auth-enabled     Enable user authentication (default: false)
+#   --debug                 Enable debug mode (default: false)
+#   --help                  Show this help message
 
 set -e
+
+# Parse command line arguments
+USER_AUTH_ENABLED="false"
+DEBUG_MODE="false"
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --user-auth-enabled)
+            USER_AUTH_ENABLED="true"
+            shift
+            ;;
+        --debug)
+            DEBUG_MODE="true"
+            shift
+            ;;
+        --help)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  --user-auth-enabled     Enable user authentication (default: false)"
+            echo "  --debug                 Enable debug mode (default: false)"
+            echo "  --help                  Show this help message"
+            echo ""
+            echo "Environment Variables:"
+            echo "  P3D_REDIS_URL          Redis connection URL (default: redis://localhost:6379)"
+            echo "  P3D_HOST               API host address (default: 0.0.0.0)"
+            echo "  P3D_PORT               API port (default: 7842)"
+            echo "  P3D_WORKERS            Number of API workers (default: 4)"
+            echo "  P3D_LOG_LEVEL          Logging level (default: info)"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
 
 echo "🚀 Starting 3D Generative Models Backend (Multi-Worker Mode)..."
 echo ""
@@ -24,6 +70,10 @@ fi
 # Set environment variables
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 
+# Essential configuration parameters
+export P3D_USER_AUTH_ENABLED="$USER_AUTH_ENABLED"
+export P3D_DEBUG="$DEBUG_MODE"
+
 # Configuration
 REDIS_URL=${P3D_REDIS_URL:-"redis://localhost:6379"}
 API_HOST=${P3D_HOST:-"0.0.0.0"}
@@ -37,6 +87,8 @@ echo "   API Host: $API_HOST"
 echo "   API Port: $API_PORT"
 echo "   API Workers: $API_WORKERS"
 echo "   Log Level: $LOG_LEVEL"
+echo "   User Auth: $USER_AUTH_ENABLED"
+echo "   Debug Mode: $DEBUG_MODE"
 echo ""
 
 # Check if Redis is running

@@ -50,7 +50,7 @@ class UniRigAdapter(AutoRigModel):
             model_path=model_path,
             vram_requirement=vram_requirement,
             supported_input_formats=["fbx", "obj", "glb"],
-            supported_output_formats=["fbx", "glb"],
+            supported_output_formats=["fbx"],
         )
 
         self.unirig_root = Path(unirig_root)

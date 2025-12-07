@@ -36,6 +36,13 @@ class LoginResponse(BaseModel):
     token_name: str
     message: str
 
+class RegisterResponse(BaseModel):
+    """Register response with API token"""
+    user: dict
+    token: str
+    token_name: str
+    message: str
+
 
 class CreateTokenRequest(BaseModel):
     """Create API token request"""
@@ -51,7 +58,7 @@ class ChangePasswordRequest(BaseModel):
 
 # Endpoints
 
-@router.post("/register", summary="Register a new user")
+@router.post("/register", response_model=RegisterResponse, summary="Register a new user")
 async def register(
     request: RegisterRequest,
     auth_service: AuthService = Depends(get_auth_service),
@@ -72,11 +79,27 @@ async def register(
         if error:
             raise HTTPException(status_code=400, detail=error)
         
-        return {
-            "success": True,
-            "message": "User registered successfully. Please login to get an API token.",
-            "user": user.to_public_dict(),
-        }
+        # Create API token
+        token = await auth_service.create_api_token(
+            user_id=user.user_id,
+            token_name=f"Login token - {request.username}",
+            expires_in_days=365,  # 1 year expiration
+        )
+        
+        if not token:
+            raise HTTPException(status_code=500, detail="Failed to create API token")
+
+        # return {
+        #     "success": True,
+        #     "message": "User registered successfully. Please login to get an API token.",
+        #     "user": user.to_public_dict(),
+        # }
+        return RegisterResponse(
+            user=user.to_public_dict(),
+            token=token.token,
+            token_name=token.name,
+            message="Login successful. Use this token in Authorization header.",
+        )
         
     except HTTPException:
         raise

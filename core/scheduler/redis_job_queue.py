@@ -60,6 +60,26 @@ class RedisJobQueue:
         if self.redis:
             await self.redis.close()
 
+    async def recover_orphaned_jobs(self):
+        """
+        Find any jobs stuck in the 'processing' set on startup and requeue them.
+        This handles cases where the scheduler crashed while jobs were running.
+        """
+        if not self.redis:
+            raise RuntimeError("Redis not connected")
+
+        orphaned_job_ids = await self.redis.smembers(self.processing_set_key)
+        if not orphaned_job_ids:
+            logger.info("No orphaned jobs found in 'processing' set.")
+            return
+
+        logger.warning(f"Found {len(orphaned_job_ids)} orphaned jobs. Requeuing them...")
+        for job_id in orphaned_job_ids:
+            logger.info(f"Requeuing orphaned job {job_id}")
+            await self.requeue_job(job_id)
+
+        logger.info("Finished requeuing all orphaned jobs.")
+
     async def enqueue(self, job_request: JobRequest) -> str:
         """Add a job to the queue"""
         if not self.redis:

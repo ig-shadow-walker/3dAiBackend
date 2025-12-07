@@ -433,3 +433,7 @@ assets/example_mesh/white_mesh_remesh.obj.mtl
 data/
 uploads/
 test_outputs/
+
+# some wheels are too large to put there 
+assets/wheels/flash_attn*
+assets/wheels/torch*

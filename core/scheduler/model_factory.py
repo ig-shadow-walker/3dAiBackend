@@ -38,27 +38,27 @@ class ModelFactory:
             "class": "TrellisImageMeshPaintingAdapter",
         },
         # Hunyuan3D adapters
-        "hunyuan3d_2_0_image_to_raw_mesh": {
+        "hunyuan3dv20_image_to_raw_mesh": {
             "module": "adapters.hunyuan3d_adapter_v20",
             "class": "Hunyuan3DV20ImageToRawMeshAdapter",
         },
-        "hunyuan3d_2_0_image_to_textured_mesh": {
+        "hunyuan3dv20_image_to_textured_mesh": {
             "module": "adapters.hunyuan3d_adapter_v20",
             "class": "Hunyuan3DV20ImageToTexturedMeshAdapter",
         },
-        "hunyuan3d_2_0_image_mesh_painting": {
+        "hunyuan3dv20_image_mesh_painting": {
             "module": "adapters.hunyuan3d_adapter_v20",
             "class": "Hunyuan3DV20ImageMeshPaintingAdapter",
         },
-        "hunyuan3d_image_to_raw_mesh": {
+        "hunyuan3dv21_image_to_raw_mesh": {
             "module": "adapters.hunyuan3d_adapter_v21",
             "class": "Hunyuan3DV21ImageToRawMeshAdapter",
         },
-        "hunyuan3d_image_to_textured_mesh": {
+        "hunyuan3dv21_image_to_textured_mesh": {
             "module": "adapters.hunyuan3d_adapter_v21",
             "class": "Hunyuan3DV21ImageToTexturedMeshAdapter",
         },
-        "hunyuan3d_image_mesh_painting": {
+        "hunyuan3dv21_image_mesh_painting": {
             "module": "adapters.hunyuan3d_adapter_v21",
             "class": "Hunyuan3DV21ImageMeshPaintingAdapter",
         },
@@ -335,9 +335,9 @@ def get_model_configs_from_settings(
                 config["supported_outputs"] = supported_outputs
 
             configs[model_id] = config
-            logger.debug(f"Configured model {model_id} for feature {feature_type}")
+            # logger.debug(f"Configured model {model_id} for feature {feature_type}")
 
-    logger.info(f"Configured {len(configs)} enabled models from settings")
+    # logger.info(f"Configured {len(configs)} enabled models from settings")
     return configs
 
 
@@ -379,18 +379,18 @@ def get_default_model_configs() -> Dict[str, Dict[str, Any]]:
     # Hunyuan3D2.0 models
     configs.update(
         {
-            "hunyuan3d_2_0_image_to_raw_mesh": ModelFactory.create_model_config(
-                model_id="hunyuan3d_2_0_image_to_raw_mesh",
+            "hunyuan3dv20_image_to_raw_mesh": ModelFactory.create_model_config(
+                model_id="hunyuan3dv20_image_to_raw_mesh",
                 feature_type="image_to_raw_mesh",
                 vram_requirement=5120,
             ),
-            "hunyuan3d_2_0_image_to_textured_mesh": ModelFactory.create_model_config(
-                model_id="hunyuan3d_2_0_image_to_textured_mesh",
+            "hunyuan3dv20_image_to_textured_mesh": ModelFactory.create_model_config(
+                model_id="hunyuan3dv20_image_to_textured_mesh",
                 feature_type="image_to_textured_mesh",
                 vram_requirement=14336,
             ),
-            "hunyuan3d_2_0_image_mesh_painting": ModelFactory.create_model_config(
-                model_id="hunyuan3d_2_0_image_mesh_painting",
+            "hunyuan3dv20_image_mesh_painting": ModelFactory.create_model_config(
+                model_id="hunyuan3dv20_image_mesh_painting",
                 feature_type="image_mesh_painting",
                 vram_requirement=11264,
             ),
@@ -400,18 +400,18 @@ def get_default_model_configs() -> Dict[str, Dict[str, Any]]:
     # Hunyuan3D2.1 models
     configs.update(
         {
-            "hunyuan3d_image_to_raw_mesh": ModelFactory.create_model_config(
-                model_id="hunyuan3d_image_to_raw_mesh",
+            "hunyuan3dv21_image_to_raw_mesh": ModelFactory.create_model_config(
+                model_id="hunyuan3dv21_image_to_raw_mesh",
                 feature_type="image_to_raw_mesh",
                 vram_requirement=8192,
             ),
-            "hunyuan3d_image_to_textured_mesh": ModelFactory.create_model_config(
-                model_id="hunyuan3d_image_to_textured_mesh",
+            "hunyuan3dv21_image_to_textured_mesh": ModelFactory.create_model_config(
+                model_id="hunyuan3dv21_image_to_textured_mesh",
                 feature_type="image_to_textured_mesh",
                 vram_requirement=19456,
             ),
-            "hunyuan3d_image_mesh_painting": ModelFactory.create_model_config(
-                model_id="hunyuan3d_image_mesh_painting",
+            "hunyuan3dv21_image_mesh_painting": ModelFactory.create_model_config(
+                model_id="hunyuan3dv21_image_mesh_painting",
                 feature_type="image_mesh_painting",
                 vram_requirement=12288,
             ),

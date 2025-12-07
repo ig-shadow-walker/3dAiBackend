@@ -1,0 +1,1 @@
+You are an expert in PyTorch, PyTorch Lightning and Machine Learning. Could you get rid of the heavy and stupid depdendency `trainer` during prediction?  @thirdparty/PartField/partfield/model_trainer_pvcnn_only_demo.py @utils/partfield_utils.py:716-721 Each time the lightning trainer doing prediction it will try to initialize distributed training, really annoying 

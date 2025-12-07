@@ -1,5 +1,3 @@
-version: '3.10'
-
 services:
   # Redis for job queue coordination (multi-worker mode)
   redis:
@@ -19,22 +17,28 @@ services:
 
   # GPU Scheduler Service (single instance, handles all GPU jobs)
   scheduler:
+    image: fishwowater/3daigc-api
     build:
       context: .
       dockerfile: Dockerfile
     container_name: 3daigc-scheduler
-    command: python scripts/scheduler_service.py --redis-url redis://redis:6379 --log-level info
+    command: conda run --no-capture-output -n 3daigc-api python scripts/scheduler_service.py --redis-url redis://redis:6379 --log-level info
     volumes:
       - ./data:/app/data
       - ./models:/app/models
+      - ./pretrained:/app/pretrained:ro
       - ./logs:/app/logs
       - ./config:/app/config:ro
     environment:
+      - http_proxy=http://127.0.0.1:7890
+      - https_proxy=http://127.0.0.1:7890
       - PYTHONPATH=/app
-      - REDIS_URL=redis://redis:6379
+      - P3D_REDIS_URL=redis://redis:6379
       - ENVIRONMENT=production
-      - CUDA_VISIBLE_DEVICES=0,1
+      - CUDA_VISIBLE_DEVICES=0,1,5,6,7
       - TORCH_CUDA_ARCH_LIST="6.0 6.1 7.0 7.5 8.0 8.6"
+      - P3D_USER_AUTH_ENABLED=${P3D_USER_AUTH_ENABLED:-false}
+      - P3D_DEBUG=${P3D_DEBUG:-false}
     runtime: nvidia
     deploy:
       resources:
@@ -54,24 +58,40 @@ services:
       retries: 3
       start_period: 30s
 
-  # FastAPI Application (multiple workers, no GPU needed)
+  # FastAPI Application (multiple workers)
   api:
+    image: fishwowater/3daigc-api
     build:
       context: .
       dockerfile: Dockerfile
     container_name: 3daigc-api
-    command: uvicorn api.main_multiworker:app --host 0.0.0.0 --port 7842 --workers 4 --log-level info
+    command: conda run --no-capture-output -n 3daigc-api uvicorn api.main_multiworker:app --host 0.0.0.0 --port 7842 --workers 4 --log-level info
     ports:
       - "7842:7842"
+      # Port 7890 removed - proxy only needed during build, not runtime
     volumes:
       - ./data:/app/data
       - ./uploads:/app/uploads
       - ./logs:/app/logs
       - ./config:/app/config:ro
     environment:
+      - http_proxy=http://127.0.0.1:7890
+      - https_proxy=http://127.0.0.1:7890
       - PYTHONPATH=/app
-      - REDIS_URL=redis://redis:6379
+      - P3D_REDIS_URL=redis://redis:6379
       - ENVIRONMENT=production
+      - CUDA_VISIBLE_DEVICES=0,1,5,6,7
+      - TORCH_CUDA_ARCH_LIST="6.0 6.1 7.0 7.5 8.0 8.6"
+      - P3D_USER_AUTH_ENABLED=${P3D_USER_AUTH_ENABLED:-false}
+      - P3D_DEBUG=${P3D_DEBUG:-false}
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     depends_on:
       redis:
         condition: service_healthy

@@ -209,7 +209,7 @@ class Hunyuan3DV20ImageToRawMeshAdapter(Hunyuan3DV20ImageToMeshAdapterCommon):
     """
 
     FEATURE_TYPE = "image_to_raw_mesh"
-    MODEL_ID = "hunyuan3d_2_0_image_to_raw_mesh"
+    MODEL_ID = "hunyuan3dv20_image_to_raw_mesh"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -324,7 +324,7 @@ class Hunyuan3DV20ImageToTexturedMeshAdapter(Hunyuan3DV20ImageToMeshAdapterCommo
     """
 
     FEATURE_TYPE = "image_to_textured_mesh"
-    MODEL_ID = "hunyuan3d_2_0_image_to_textured_mesh"
+    MODEL_ID = "hunyuan3dv20_image_to_textured_mesh"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -445,7 +445,7 @@ class Hunyuan3DV20ImageMeshPaintingAdapter(Hunyuan3DV20ImageToMeshAdapterCommon)
     """
 
     FEATURE_TYPE = "image_mesh_painting"
-    MODEL_ID = "hunyuan3d_2_0_image_mesh_painting"
+    MODEL_ID = "hunyuan3dv20_image_mesh_painting"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

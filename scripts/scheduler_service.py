@@ -76,6 +76,10 @@ async def run_scheduler_service(redis_url: str):
         await redis_queue_instance.connect()
         logger.info("✓ Connected to Redis")
 
+        # Recover any orphaned jobs from a previous crash
+        logger.info("Checking for orphaned jobs from previous session...")
+        await redis_queue_instance.recover_orphaned_jobs()
+
         # Create scheduler with job processing enabled
         logger.info("Initializing GPU scheduler...")
         scheduler_instance = MultiprocessModelScheduler(

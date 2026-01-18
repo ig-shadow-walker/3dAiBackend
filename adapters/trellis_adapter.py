@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import numpy as np
 import torch
 import trimesh
 from PIL import Image
@@ -17,7 +18,7 @@ from PIL import Image
 from core.models.base import ModelStatus
 from core.models.mesh_models import ImageToMeshModel, TextToMeshModel
 from core.utils.thumbnail_utils import generate_mesh_thumbnail
-from utils.mesh_utils import MeshProcessor
+from core.utils.mesh_utils import MeshProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +160,17 @@ class TrellisTextToMeshAdapterCommon(TextToMeshModel):
             # Different Conditions
             if mesh_path:
                 input_mesh = trimesh.load(mesh_path, force="mesh")
-                logger.info(f"Loaded input mesh from {mesh_path}")
+                # Notice that the input is assumed to be Y-UP, but trellis mesh painting requires it to be Z-UP
+                # Convert mesh from y-up to z-up coordinate system
+                # Transformation matrix: [[1,0,0,0], [0,0,1,0], [0,-1,0,0], [0,0,0,1]]
+                transform = np.array([
+                    [1, 0, 0, 0],
+                    [0, 0, -1, 0],
+                    [0, 1, 0, 0],
+                    [0, 0, 0, 1]
+                ])
+                input_mesh.apply_transform(transform)
+                logger.info(f"Loaded input mesh from {mesh_path} and converted from z-up to y-up")
                 outputs = self.pipeline.run_variant(
                     input_mesh,
                     prompt=text_prompt,
@@ -267,6 +278,47 @@ class TrellisTextToMeshAdapterCommon(TextToMeshModel):
     def get_supported_formats(self) -> Dict[str, List[str]]:
         """Return supported input/output formats for TRELLIS."""
         return {"input": ["text"], "output": ["glb", "obj"]}
+    
+    def get_parameter_schema(self) -> Dict[str, Any]:
+        """
+        Return JSON Schema describing model-specific parameters.
+        
+        Returns:
+            Parameter schema dictionary
+        """
+        return {
+            "parameters": {
+                "seed": {
+                    "type": "integer",
+                    "description": "Random seed for reproducibility",
+                    "default": 42,
+                    "minimum": 0,
+                    "required": False
+                },
+                "texture_resolution": {
+                    "type": "integer",
+                    "description": "Output texture resolution",
+                    "default": 1024,
+                    "enum": [512, 1024, 2048, 4096],
+                    "required": False
+                },
+                "simplify": {
+                    "type": "number",
+                    "description": "Mesh simplification ratio (0-1, lower = more simplification)",
+                    "default": 0.95,
+                    "minimum": 0.01,
+                    "maximum": 1.0,
+                    "required": False
+                },
+                "texture_bake_mode": {
+                    "type": "string",
+                    "description": "Texture baking quality mode",
+                    "default": "fast",
+                    "enum": ["fast", "opt"],
+                    "required": False
+                }
+            }
+        }
 
 
 class TrellisImageToMeshAdapterCommon(ImageToMeshModel):
@@ -395,7 +447,17 @@ class TrellisImageToMeshAdapterCommon(ImageToMeshModel):
             # Generate 3D representation
             if mesh_path:
                 input_mesh = trimesh.load(mesh_path, force="mesh")
-                logger.info(f"Loaded input mesh from {mesh_path}")
+                # Notice that the input is assumed to be Y-UP, but trellis mesh painting requires it to be Z-UP
+                # Convert mesh from y-up to z-up coordinate system
+                # Transformation matrix: [[1,0,0,0], [0,0,-1,0], [0,1,0,0], [0,0,0,1]]
+                transform = np.array([
+                    [1, 0, 0, 0],
+                    [0, 0, -1, 0],
+                    [0, 1, 0, 0],
+                    [0, 0, 0, 1]
+                ])
+                input_mesh.apply_transform(transform)
+                logger.info(f"Loaded input mesh from {mesh_path} and converted from z-up to y-up")
                 # do the voxelization
                 outputs = self.pipeline.run_detail_variation(
                     input_mesh,
@@ -510,6 +572,47 @@ class TrellisImageToMeshAdapterCommon(ImageToMeshModel):
     def get_supported_formats(self) -> Dict[str, List[str]]:
         """Return supported input/output formats for TRELLIS."""
         return {"input": ["str"], "output": ["glb", "obj"]}
+    
+    def get_parameter_schema(self) -> Dict[str, Any]:
+        """
+        Return JSON Schema describing model-specific parameters.
+        
+        Returns:
+            Parameter schema dictionary
+        """
+        return {
+            "parameters": {
+                "seed": {
+                    "type": "integer",
+                    "description": "Random seed for reproducibility",
+                    "default": 42,
+                    "minimum": 0,
+                    "required": False
+                },
+                "texture_resolution": {
+                    "type": "integer",
+                    "description": "Output texture resolution",
+                    "default": 1024,
+                    "enum": [512, 1024, 2048, 4096],
+                    "required": False
+                },
+                "simplify": {
+                    "type": "number",
+                    "description": "Mesh simplification ratio (0-1, lower = more simplification)",
+                    "default": 0.95,
+                    "minimum": 0.01,
+                    "maximum": 1.0,
+                    "required": False
+                },
+                "texture_bake_mode": {
+                    "type": "string",
+                    "description": "Texture baking quality mode",
+                    "default": "fast",
+                    "enum": ["fast", "opt"],
+                    "required": False
+                }
+            }
+        }
 
 
 class TrellisTextToTexturedMeshAdapter(TrellisTextToMeshAdapterCommon):

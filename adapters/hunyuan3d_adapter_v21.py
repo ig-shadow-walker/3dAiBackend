@@ -17,8 +17,8 @@ from PIL import Image
 
 from core.models.base import ModelStatus
 from core.models.mesh_models import ImageToMeshModel
-from utils.file_utils import OutputPathGenerator
-from utils.mesh_utils import MeshProcessor
+from core.utils.file_utils import OutputPathGenerator
+from core.utils.mesh_utils import MeshProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -297,6 +297,17 @@ class Hunyuan3DV21ImageToRawMeshAdapter(Hunyuan3DV21ImageToMeshAdapterCommon):
             self.status = ModelStatus.ERROR
             logger.error(f"Hunyuan3D 2.1 raw mesh generation failed: {str(e)}")
             raise Exception(f"Hunyuan3D 2.1 raw mesh generation failed: {str(e)}")
+    
+    def get_parameter_schema(self) -> Dict[str, Any]:
+        """
+        Return JSON Schema describing model-specific parameters.
+        
+        Returns:
+            Parameter schema dictionary
+        """
+        return {
+            "parameters": {}
+        }
 
 
 class Hunyuan3DV21ImageToTexturedMeshAdapter(Hunyuan3DV21ImageToMeshAdapterCommon):
@@ -421,6 +432,33 @@ class Hunyuan3DV21ImageToTexturedMeshAdapter(Hunyuan3DV21ImageToMeshAdapterCommo
             trace = traceback.format_exc()
             logger.error(f"Hunyuan3D 2.1 textured mesh generation failed: {str(e)} with trace: {trace}")
             raise Exception(f"Hunyuan3D 2.1 textured mesh generation failed: {str(e)}")
+    
+    def get_parameter_schema(self) -> Dict[str, Any]:
+        """
+        Return JSON Schema describing model-specific parameters.
+        
+        Returns:
+            Parameter schema dictionary
+        """
+        return {
+            "parameters": {
+                "max_num_view": {
+                    "type": "integer",
+                    "description": "Maximum number of views for texture generation",
+                    "default": 6,
+                    "minimum": 1,
+                    "maximum": 12,
+                    "required": False
+                },
+                "resolution": {
+                    "type": "integer",
+                    "description": "Texture generation resolution per view",
+                    "default": 512,
+                    "enum": [256, 512, 1024],
+                    "required": False
+                }
+            }
+        }
 
 
 class Hunyuan3DV21ImageMeshPaintingAdapter(Hunyuan3DV21ImageToMeshAdapterCommon):
@@ -542,3 +580,30 @@ class Hunyuan3DV21ImageMeshPaintingAdapter(Hunyuan3DV21ImageToMeshAdapterCommon)
     def get_supported_formats(self) -> Dict[str, List[str]]:
         """Return supported input/output formats for Hunyuan3D 2.1 painting."""
         return {"input": ["glb", "obj", "ply"], "output": ["glb", "obj"]}
+    
+    def get_parameter_schema(self) -> Dict[str, Any]:
+        """
+        Return JSON Schema describing model-specific parameters.
+        
+        Returns:
+            Parameter schema dictionary
+        """
+        return {
+            "parameters": {
+                "max_num_view": {
+                    "type": "integer",
+                    "description": "Maximum number of views for texture generation",
+                    "default": 6,
+                    "minimum": 1,
+                    "maximum": 12,
+                    "required": False
+                },
+                "resolution": {
+                    "type": "integer",
+                    "description": "Texture generation resolution per view",
+                    "default": 512,
+                    "enum": [256, 512, 1024],
+                    "required": False
+                }
+            }
+        }

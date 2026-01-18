@@ -3,6 +3,7 @@
 from . import (
     auto_rigging,
     file_upload,
+    mesh_editing,
     mesh_generation,
     mesh_retopology,
     mesh_segmentation,
@@ -13,6 +14,7 @@ from . import (
 __all__ = [
     "auto_rigging",
     "file_upload",
+    "mesh_editing",
     "mesh_generation",
     "mesh_retopology",
     "mesh_segmentation",

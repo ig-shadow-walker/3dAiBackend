@@ -6,7 +6,6 @@ This script runs tests for all adapters including:
 - UniRig (auto-rigging)
 - TRELLIS (text-to-mesh)
 - PartField (mesh segmentation)
-- HoloPart (part completion)
 """
 
 import argparse
@@ -28,7 +27,6 @@ def run_pytest_tests():
     test_modules = [
         "tests.test_adapters.test_trellis_adapter",
         "tests.test_adapters.test_partfield_adapter",
-        "tests.test_adapters.test_holopart_adapter",
         "tests.test_adapters.test_unirig_adapter",  # If it exists
         "tests.test_adapters.test_hunyuan3d_adapter",
         "tests.test_adapters.test_partpacker_adapter",
@@ -112,7 +110,6 @@ def main():
             "unirig",
             "trellis",
             "partfield",
-            "holopart",
             "hunyuan3d",
             "partpacker",
         ],
@@ -135,7 +132,6 @@ def main():
         module_map = {
             "trellis": "tests.test_adapters.test_trellis_adapter",
             "partfield": "tests.test_adapters.test_partfield_adapter",
-            "holopart": "tests.test_adapters.test_holopart_adapter",
             "unirig": "tests.test_adapters.test_unirig_adapter",
             "hunyuan3d": "tests.test_adapters.test_hunyuan3d_adapter",
             "partpacker": "tests.test_adapters.test_partpacker_adapter",

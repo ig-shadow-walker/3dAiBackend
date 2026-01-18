@@ -68,6 +68,10 @@ class MeshSegmentationRequest(BaseModel):
     model_preference: str = Field(
         "partfield_mesh_segmentation", description="Model name for mesh segmentation"
     )
+    model_parameters: Optional[dict] = Field(
+        None, 
+        description="Model-specific parameters (query /system/models/{model_id}/parameters for schema)"
+    )
 
     @field_validator("mesh_file_id")
     @classmethod
@@ -186,6 +190,7 @@ async def segment_mesh(
                 "mesh_path": mesh_file_path,
                 "num_parts": request.num_parts,
                 "output_format": request.output_format,
+                **(request.model_parameters or {}),
             },
             model_preference=request.model_preference,
             priority=1,

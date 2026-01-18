@@ -66,6 +66,10 @@ class TextToRawMeshRequest(BaseModel):
     model_preference: str = Field(
         "trellis_text_to_raw_mesh", description="Model name for mesh generation"
     )
+    model_parameters: Optional[dict] = Field(
+        None, 
+        description="Model-specific parameters (query /system/models/{model_id}/parameters for schema)"
+    )
 
     model_config = ConfigDict(protected_namespaces=("settings_",))
 
@@ -87,6 +91,10 @@ class TextToTexturedMeshRequest(TextToRawMeshRequest):
     texture_resolution: int = Field(
         1024, description="Texture resolution", ge=256, le=4096
     )
+    model_parameters: Optional[dict] = Field(
+        None, 
+        description="Model-specific parameters (query /system/models/{model_id}/parameters for schema)"
+    )
 
 
 class TextMeshPaintingRequest(BaseModel):
@@ -106,6 +114,10 @@ class TextMeshPaintingRequest(BaseModel):
     output_format: str = Field("glb", description="Output mesh format")
     model_preference: str = Field(
         "trellis_text_to_textured_mesh", description="Model name for mesh generation"
+    )
+    model_parameters: Optional[dict] = Field(
+        None, 
+        description="Model-specific parameters (query /system/models/{model_id}/parameters for schema)"
     )
 
     @field_validator("output_format")
@@ -150,6 +162,10 @@ class ImageToRawMeshRequest(BaseModel):
     output_format: str = Field("glb", description="Output mesh format")
     model_preference: str = Field(
         "trellis_image_to_raw_mesh", description="Model name for mesh generation"
+    )
+    model_parameters: Optional[dict] = Field(
+        None, 
+        description="Model-specific parameters (query /system/models/{model_id}/parameters for schema)"
     )
 
     @field_validator("output_format")
@@ -205,6 +221,10 @@ class ImageToTexturedMeshRequest(BaseModel):
     model_preference: str = Field(
         "trellis_image_to_textured_mesh", description="Model name for mesh generation"
     )
+    model_parameters: Optional[dict] = Field(
+        None, 
+        description="Model-specific parameters (query /system/models/{model_id}/parameters for schema)"
+    )
 
     @field_validator("output_format")
     @classmethod
@@ -255,6 +275,10 @@ class ImageMeshPaintingRequest(BaseModel):
     model_preference: str = Field(
         "trellis_image_mesh_painting", description="Model name for mesh generation"
     )
+    model_parameters: Optional[dict] = Field(
+        None, 
+        description="Model-specific parameters (query /system/models/{model_id}/parameters for schema)"
+    )
 
     @field_validator("output_format")
     @classmethod
@@ -298,40 +322,6 @@ class ImageMeshPaintingRequest(BaseModel):
 
     model_config = ConfigDict(protected_namespaces=("settings_",))
 
-
-# Part Completion Request
-class PartCompletionRequest(BaseModel):
-    """Request for part completion"""
-
-    mesh_path: Optional[str] = Field(None, description="Path to the input mesh file")
-    mesh_base64: Optional[str] = Field(None, description="Base64 encoded mesh data")
-    mesh_file_id: Optional[str] = Field(
-        None, description="File ID from upload endpoint"
-    )
-    output_format: str = Field("glb", description="Output mesh format")
-    model_preference: str = Field(
-        "holopart_part_completion", description="Model name for part completion"
-    )
-
-    @field_validator("mesh_file_id")
-    @classmethod
-    def validate_inputs(cls, v, info):
-        mesh_path = info.data.get("mesh_path")
-        mesh_base64 = info.data.get("mesh_base64")
-
-        inputs_provided = sum(bool(x) for x in [mesh_path, mesh_base64, v])
-
-        if inputs_provided == 0:
-            raise ValueError(
-                "One of mesh_path, mesh_base64, or mesh_file_id must be provided"
-            )
-        if inputs_provided > 1:
-            raise ValueError(
-                "Only one of mesh_path, mesh_base64, or mesh_file_id should be provided"
-            )
-        return v
-
-    model_config = ConfigDict(protected_namespaces=("settings_",))
 
 
 # Enhanced Response models
@@ -447,6 +437,7 @@ async def text_to_raw_mesh(
             inputs={
                 "text_prompt": mesh_request.text_prompt,
                 "output_format": mesh_request.output_format,
+                **(mesh_request.model_parameters or {}),
             },
             model_preference=mesh_request.model_preference,
             priority=1,
@@ -501,12 +492,14 @@ async def text_to_textured_mesh(
                 "texture_prompt": mesh_request.texture_prompt,
                 "output_format": mesh_request.output_format,
                 "texture_resolution": mesh_request.texture_resolution,
+                **(mesh_request.model_parameters or {}),
             },
             model_preference=mesh_request.model_preference,
             priority=1,
             metadata={"feature_type": "text_to_textured_mesh"},
             user_id=user_id,
         )
+        # logger.info("JobRequest: {}".format(job_request.to_dict()))
 
         job_id = await scheduler.schedule_job(job_request)
 
@@ -567,6 +560,7 @@ async def text_mesh_painting(
                 "mesh_path": mesh_file_path,
                 "output_format": mesh_request.output_format,
                 "texture_resolution": mesh_request.texture_resolution,
+                **(mesh_request.model_parameters or {}),
             },
             model_preference=mesh_request.model_preference,
             priority=1,
@@ -631,6 +625,7 @@ async def image_to_raw_mesh(
             inputs={
                 "image_path": image_file_path,
                 "output_format": mesh_request.output_format,
+                **(mesh_request.model_parameters or {}),
             },
             model_preference=mesh_request.model_preference,
             priority=1,
@@ -707,6 +702,7 @@ async def image_to_textured_mesh(
                 "texture_image_path": texture_image_path,
                 "output_format": mesh_request.output_format,
                 "texture_resolution": mesh_request.texture_resolution,
+                **(mesh_request.model_parameters or {}),
             },
             model_preference=mesh_request.model_preference,
             priority=1,
@@ -781,6 +777,7 @@ async def image_mesh_painting(
                 "mesh_path": mesh_file_path,
                 "output_format": mesh_request.output_format,
                 "texture_resolution": mesh_request.texture_resolution,
+                **(mesh_request.model_parameters or {}),
             },
             model_preference=mesh_request.model_preference,
             priority=1,
@@ -803,60 +800,6 @@ async def image_mesh_painting(
         logger.error(f"Error scheduling image-mesh-painting job: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to schedule job: {str(e)}")
 
-
-@router.post("/part-completion", response_model=MeshGenerationResponse)
-async def part_completion(
-    mesh_request: PartCompletionRequest,
-    scheduler: MultiprocessModelScheduler = Depends(get_scheduler),
-    current_user = Depends(get_current_user_or_none),
-    file_store: Optional[FileStore] = Depends(get_file_store),
-):
-    """
-    Complete a part of a 3D mesh.
-    """
-    try:
-        user_id = current_user.user_id if current_user else None
-        
-        # Validate model preference
-        validate_model_preference(
-            mesh_request.model_preference, "part_completion", scheduler
-        )
-
-        # Process mesh input
-        mesh_file_path = await process_file_input(
-            file_path=mesh_request.mesh_path,
-            base64_data=mesh_request.mesh_base64,
-            file_id=mesh_request.mesh_file_id,
-            input_type="mesh",
-            file_store=file_store,
-        )
-
-        job_request = JobRequest(
-            feature="part_completion",
-            inputs={
-                "mesh_path": mesh_file_path,
-                "output_format": mesh_request.output_format,
-            },
-            model_preference=mesh_request.model_preference,
-            priority=1,
-            metadata={"feature_type": "part_completion"},
-            user_id=user_id,
-        )
-
-        job_id = await scheduler.schedule_job(job_request)
-
-        return MeshGenerationResponse(
-            job_id=job_id,
-            status="queued",
-            message="Part completion job queued successfully",
-        )
-
-    except HTTPException:
-        # Re-raise HTTP exceptions (including validation errors)
-        raise
-    except Exception as e:
-        logger.error(f"Error scheduling part completion job: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to schedule job: {str(e)}")
 
 
 # Utility endpoints

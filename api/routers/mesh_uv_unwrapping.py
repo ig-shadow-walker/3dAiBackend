@@ -77,6 +77,10 @@ class MeshUVUnwrappingRequest(BaseModel):
         "partuv_uv_unwrapping",
         description="Name of the UV unwrapping model to use",
     )
+    model_parameters: Optional[dict] = Field(
+        None, 
+        description="Model-specific parameters (query /system/models/{model_id}/parameters for schema)"
+    )
 
     @field_validator("output_format")
     @classmethod
@@ -181,6 +185,7 @@ async def unwrap_mesh(
                 "save_individual_parts": request.save_individual_parts,
                 "save_visuals": request.save_visuals,
                 "output_format": request.output_format,
+                **(request.model_parameters or {}),
             },
             model_preference=request.model_preference,
             user_id=user_id,

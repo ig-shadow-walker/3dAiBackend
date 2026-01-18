@@ -12,11 +12,11 @@ from typing import Any, Dict, List, Optional
 
 import torch
 
+from utils.partuv_utils import PartUVRunner
 from core.models.base import ModelStatus
 from core.models.uv_models import UVUnwrappingModel
-from utils.file_utils import OutputPathGenerator
-from utils.mesh_utils import MeshProcessor
-from utils.partuv_utils import PartUVRunner
+from core.utils.file_utils import OutputPathGenerator
+from core.utils.mesh_utils import MeshProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -240,5 +240,44 @@ class PartUVUnwrappingAdapter(UVUnwrappingModel):
         return {
             "input": ["obj", "glb"],
             "output": ["obj"],  # PartUV primarily outputs OBJ with UV
+        }
+    
+    def get_parameter_schema(self) -> Dict[str, Any]:
+        """
+        Return JSON Schema describing model-specific parameters.
+        
+        Returns:
+            Parameter schema dictionary
+        """
+        return {
+            "parameters": {
+                "distortion_threshold": {
+                    "type": "number",
+                    "description": "Maximum distortion threshold for UV unwrapping",
+                    "default": 1.25,
+                    "minimum": 1.0,
+                    "maximum": 2.0,
+                    "required": False
+                },
+                "pack_method": {
+                    "type": "string",
+                    "description": "UV packing method to use",
+                    "default": "blender",
+                    "enum": ["blender", "uvpackmaster", "none"],
+                    "required": False
+                },
+                "save_individual_parts": {
+                    "type": "boolean",
+                    "description": "Save individual part meshes separately",
+                    "default": True,
+                    "required": False
+                },
+                "save_visuals": {
+                    "type": "boolean",
+                    "description": "Save visualization images of UV layout",
+                    "default": False,
+                    "required": False
+                }
+            }
         }
 

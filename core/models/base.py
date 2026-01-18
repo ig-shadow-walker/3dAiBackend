@@ -119,6 +119,37 @@ class BaseModel(ABC):
     def get_supported_formats(self) -> Dict[str, List[str]]:
         """Return supported input/output formats"""
         pass
+    
+    @abstractmethod
+    def get_parameter_schema(self) -> Dict[str, Any]:
+        """
+        Return JSON Schema describing model-specific parameters.
+        
+        This method should return a dictionary with parameter specifications including:
+        - type: Parameter data type (integer, number, string, boolean)
+        - description: Human-readable description
+        - default: Default value
+        - minimum/maximum: For numeric types
+        - enum: List of allowed values
+        - required: Whether the parameter is required
+        
+        Returns:
+            Dictionary with "parameters" key containing parameter specifications
+        
+        Example:
+            {
+                "parameters": {
+                    "seed": {
+                        "type": "integer",
+                        "description": "Random seed for reproducibility",
+                        "default": 42,
+                        "minimum": 0,
+                        "required": False
+                    }
+                }
+            }
+        """
+        pass
 
     def get_info(self) -> Dict[str, Any]:
         """Get model information"""

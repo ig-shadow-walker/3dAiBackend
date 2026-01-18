@@ -6,7 +6,7 @@ REM Usage: download_models.bat [OPTIONS]
 REM 
 REM Available models:
 REM   partfield, hunyuan2, hunyuan2mini, hunyuan21, trellis, trellis-text, 
-REM   holopart, unirig, partpacker, partuv, fastmesh, misc, all
+REM   unirig, partpacker, partuv, fastmesh, ultrashape, misc, all
 REM
 REM Options:
 REM   -h, --help              Show this help message
@@ -58,11 +58,11 @@ echo     hunyuan2mini  - Hunyuan3D 2.0 mini models
 echo     hunyuan21     - Hunyuan3D 2.1 models  
 echo     trellis       - TRELLIS image-large model
 echo     trellis-text  - TRELLIS text-xlarge model (optional)
-echo     holopart      - HoloPart model for part completion
 echo     unirig        - UniRig model for auto-rigging
 echo     partpacker    - PartPacker model
 echo     partuv        - PartUV model
 echo     fastmesh      - FastMesh model
+echo     ultrashape    - UltraShape model
 echo     misc          - Miscellaneous models (RealESRGAN, DINOv2)
 echo     all           - Download all models
 echo.
@@ -83,7 +83,6 @@ echo   - hunyuan2mini
 echo   - hunyuan21
 echo   - trellis
 echo   - trellis-text
-echo   - holopart
 echo   - unirig
 echo   - partpacker
 echo   - partuv
@@ -357,31 +356,6 @@ if %ERRORLEVEL% equ 0 (
 )
 exit /b 0
 
-:download_holopart
-call :print_info "========================================"
-call :print_info "Downloading HoloPart Model"
-call :print_info "========================================"
-
-set model_dir=pretrained\HoloPart
-
-if /I "%FORCE_DOWNLOAD%"=="false" (
-    call :verify_directory "%model_dir%" 3
-    if !ERRORLEVEL! equ 0 (
-        call :print_info "HoloPart model already exists and verified"
-        exit /b 0
-    )
-)
-
-md "%model_dir%" 2>nul
-call :print_info "Downloading HoloPart model..."
-call huggingface-cli download VAST-AI/HoloPart --local-dir "%model_dir%"
-if %ERRORLEVEL% equ 0 (
-    call :print_success "HoloPart model downloaded successfully"
-) else (
-    call :print_error "Failed to download HoloPart model"
-    exit /b 1
-)
-exit /b 0
 
 :download_unirig
 call :print_info "========================================"
@@ -505,6 +479,30 @@ if %ERRORLEVEL% equ 0 (
 )
 exit /b 0
 
+:download_ultrashape
+call :print_info "========================================"
+call :print_info "Downloading UltraShape Model"
+call :print_info "========================================"
+
+set checkpoint_path=pretrained\UltraShape\ultrashape_v1.pt
+if /I "%FORCE_DOWNLOAD%"=="false" (
+    call :verify_file "%checkpoint_path%" 100000000
+    if !ERRORLEVEL! equ 0 (
+        call :print_info "UltraShape checkpoint already exists and verified"
+        exit /b 0
+    )
+)
+
+md pretrained\UltraShape 2>nul
+call :print_info "Downloading UltraShape checkpoint..."
+call :print_warning "UltraShape checkpoint download:"
+call :print_info "Please download the checkpoint manually from the UltraShape repository"
+call :print_info "and place it at: %checkpoint_path%"
+call :print_info "Repository: https://github.com/bytedance/UltraShape"
+REM Uncomment when available:
+REM call huggingface-cli download bytedance/UltraShape --local-dir pretrained\UltraShape
+exit /b 0
+
 :download_misc
 call :print_info "========================================"
 call :print_info "Downloading Miscellaneous Models"
@@ -576,10 +574,6 @@ call :print_info "Checking TRELLIS text-xlarge (optional)..."
 call :verify_directory "pretrained\TRELLIS\TRELLIS-text-xlarge" 5
 if !ERRORLEVEL! neq 0 call :print_warning "TRELLIS text-xlarge not found (optional)"
 
-call :print_info "Checking HoloPart..."
-call :verify_directory "pretrained\HoloPart" 3
-if !ERRORLEVEL! neq 0 set all_verified=false
-
 call :print_info "Checking UniRig..."
 call :verify_directory "pretrained\UniRig" 3
 if !ERRORLEVEL! neq 0 set all_verified=false
@@ -650,11 +644,11 @@ for %%m in (%models_list%) do (
     if /I "%%m"=="hunyuan21" call :download_hunyuan21
     if /I "%%m"=="trellis" call :download_trellis
     if /I "%%m"=="trellis-text" call :download_trellis_text
-    if /I "%%m"=="holopart" call :download_holopart
     if /I "%%m"=="unirig" call :download_unirig
     if /I "%%m"=="partpacker" call :download_partpacker
     if /I "%%m"=="partuv" call :download_partuv
     if /I "%%m"=="fastmesh" call :download_fastmesh
+    if /I "%%m"=="ultrashape" call :download_ultrashape
     if /I "%%m"=="misc" call :download_misc
     if /I "%%m"=="all" (
         call :download_partfield
@@ -663,11 +657,11 @@ for %%m in (%models_list%) do (
         call :download_hunyuan21
         call :download_trellis
         call :download_trellis_text
-        call :download_holopart
         call :download_unirig
         call :download_partpacker
         call :download_partuv
         call :download_fastmesh
+        call :download_ultrashape
         call :download_misc
     )
 )

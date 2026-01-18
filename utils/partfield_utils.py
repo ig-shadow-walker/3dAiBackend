@@ -8,6 +8,7 @@ import random
 import shutil
 import sys
 from collections import defaultdict
+from yacs.config import CfgNode
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -22,6 +23,7 @@ from scipy.sparse.csgraph import connected_components
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.neighbors import NearestNeighbors
 
+torch.serialization.add_safe_globals([CfgNode])
 
 class UnionFind:
     def __init__(self, n):

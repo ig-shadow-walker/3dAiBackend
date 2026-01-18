@@ -23,15 +23,7 @@ text_mesh_painting:
     max_workers: 1
 
 # image-conditioned geometry generation
-image_to_raw_mesh:
-  hunyuan3dv20_image_to_raw_mesh:
-    vram_requirement: 5120  # MB
-    supported_inputs: ["image"]
-    supported_outputs: ["glb", "obj"]
-    model_path: "thirdparty/Hunyuan3D-2"
-    enabled: true
-    max_workers: 1
-    
+image_to_raw_mesh:    
   hunyuan3dv21_image_to_raw_mesh:
     vram_requirement: 8192  # MB
     supported_inputs: ["image"]
@@ -40,11 +32,19 @@ image_to_raw_mesh:
     enabled: true
     max_workers: 1
     
-  partpacker_part_packing:
+  partpacker_image_to_raw_mesh:
     vram_requirement: 10240  # MB
     supported_inputs: ["image"]
     supported_outputs: ["glb", "obj"]
     model_path: "thirdparty/PartPacker"
+    enabled: true
+    max_workers: 1
+  
+  ultrashape_image_to_raw_mesh:
+    vram_requirement: 26640  # MB (20GB: 8GB Hunyuan + 12GB UltraShape)
+    supported_inputs: ["image"]
+    supported_outputs: ["glb", "obj", "ply"]
+    model_path: "thirdparty/UltraShape"
     enabled: true
     max_workers: 1
 
@@ -58,11 +58,11 @@ image_to_textured_mesh:
     enabled: true
     max_workers: 1
 
-  hunyuan3dv20_image_to_textured_mesh:
-    vram_requirement: 14336  # MB
+  trellis2_image_to_textured_mesh:
+    vram_requirement: 12288  # MB (12GB, TRELLIS.2)
     supported_inputs: ["image"]
     supported_outputs: ["glb", "obj"]
-    model_path: "thirdparty/Hunyuan3D-2"
+    model_path: "thirdparty/TRELLIS.2"
     enabled: true
     max_workers: 1
 
@@ -84,11 +84,11 @@ image_mesh_painting:
     enabled: true
     max_workers: 1
 
-  hunyuan3dv20_image_mesh_painting:
-    vram_requirement: 11264  # MB
-    supported_inputs: ["mesh", "text", "image"]
+  trellis2_image_mesh_painting:
+    vram_requirement: 12288  # MB (12GB, TRELLIS.2)
+    supported_inputs: ["mesh", "image"]
     supported_outputs: ["glb", "obj"]
-    model_path: "thirdparty/Hunyuan3D-2"
+    model_path: "thirdparty/TRELLIS.2"
     enabled: true
     max_workers: 1
 
@@ -109,6 +109,14 @@ mesh_segmentation:
     model_path: "thirdparty/PartField"
     enabled: true
     max_workers: 1
+  
+  p3sam_mesh_segmentation:
+    vram_requirement: 61440  # MB (60GB, P3-SAM)
+    supported_inputs: ["glb", "obj", "ply"]
+    supported_outputs: ["glb"]
+    model_path: "pretrained/P3-SAM/last.ckpt"
+    enabled: true
+    max_workers: 1
 
 auto_rig:
   unirig_auto_rig:
@@ -116,16 +124,6 @@ auto_rig:
     supported_inputs: ["obj", "glb", "fbx"]
     supported_outputs: ["glb", "fbx"]
     model_path: "thirdparty/UniRig"
-    enabled: true
-    max_workers: 1
-
-# part generation
-part_completion:
-  holopart_part_completion:
-    vram_requirement: 10240  # MB
-    supported_inputs: ["glb", "obj"]
-    supported_outputs: ["glb"]
-    model_path: "thirdparty/HoloPart"
     enabled: true
     max_workers: 1
 
@@ -154,5 +152,24 @@ uv_unwrapping:
     supported_inputs: ["obj", "glb"]
     supported_outputs: ["obj"]
     model_path: "pretrained/PartField/model_objaverse.ckpt"
+    enabled: true
+    max_workers: 1
+
+# Mesh editing (local editing with VoxHammer)
+text_mesh_editing:
+  voxhammer_text_mesh_editing:
+    vram_requirement: 40960  # MB (40GB: TRELLIS + rendering)
+    supported_inputs: ["mesh", "text"]
+    supported_outputs: ["glb"]
+    model_path: "thirdparty/VoxHammer"
+    enabled: true
+    max_workers: 1
+
+image_mesh_editing:
+  voxhammer_image_mesh_editing:
+    vram_requirement: 40960  # MB (40GB: TRELLIS + rendering)
+    supported_inputs: ["mesh", "image"]
+    supported_outputs: ["glb"]
+    model_path: "thirdparty/VoxHammer"
     enabled: true
     max_workers: 1

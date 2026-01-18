@@ -31,18 +31,9 @@ echo.
 REM Start server based on environment
 if /I "%P3D_RELOAD%"=="true" (
     echo 🔄 Starting development server with auto-reload...
-    call uvicorn api.main:app --host %P3D_HOST% --port %P3D_PORT% --reload --log-level %P3D_LOG_LEVEL%
+    call uvicorn api.main_singleworker:app --host %P3D_HOST% --port %P3D_PORT% --reload --log-level %P3D_LOG_LEVEL%
 ) else (
-    echo 🚀 Starting production server...
-    if "%P3D_WORKERS%"=="1" (
-        REM Single worker
-        call uvicorn api.main:app --host %P3D_HOST% --port %P3D_PORT% --log-level %P3D_LOG_LEVEL%
-    ) else (
-        REM Multiple workers with Gunicorn (Note: Gunicorn doesn't work on Windows, using uvicorn instead)
-        echo [WARNING] Multiple workers with Gunicorn is not supported on Windows
-        echo [INFO] Starting single worker uvicorn server instead
-        call uvicorn api.main:app --host %P3D_HOST% --port %P3D_PORT% --log-level %P3D_LOG_LEVEL%
-    )
+    call uvicorn api.main_singleworker:app --host %P3D_HOST% --port %P3D_PORT% --log-level %P3D_LOG_LEVEL%
 )
 
 endlocal 

@@ -3,17 +3,24 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Docker Hub](https://img.shields.io/docker/v/fishwowater/3daigc-api?label=Docker%20Hub&logo=docker)](https://hub.docker.com/r/fishwowater/3daigc-api)
-[![Open3DStudio](https://img.shields.io/badge/YouTube-Open3DStudio-red?style=for-the-badge&logo=youtube)](https://youtu.be/LNteOF3XmmI)
+[![Open3DStudio](https://img.shields.io/badge/YouTube-Open3DStudio-red?&logo=youtube)](https://youtu.be/LNteOF3XmmI)
 
 A **self-hosted, comprehensive and scalable** FastAPI backend server framework for 3D generative AI models, with all of them ported to API-ready inference services
 
 The system is powered with GPU resource management, concurrent and VRAM-aware GPU scheduling. It can be used together with **Open3DStudio, an open-source replicate of TripoStudio**.
 
 ## CHANGELOG
+#### Updates 01.17 
+* Add support for [TRELLIS.2](https://github.com/microsoft/TRELLIS.2) and [UltraShape1.0](https://github.com/PKU-YuanGroup/UltraShape-1.0) for the feature of mesh generation.
+* Add support for [P3SAM](https://github.com/Tencent-Hunyuan/Hunyuan3D-Part/tree/main/P3-SAM) for higher quality 3D-native mesh segmentation.
+* Add a new feature: **mesh editing** and integrate [VoxHammer](https://github.com/Nelipot-Lee/VoxHammer) for that.
+* **Removed** the feature of part completion, and remove Hunyuan3D-2.0 to keep the env clean.
+* Expose model-specific advanced parameters to the client.
+
 #### Updates 12.03
-* Support running in **authorization mode**(need register/login/API token) besides the annonymous mode(all clients see all jobs)
-* Separate the router layer from the scheduler layer, allowing multiple uvicorn workers, which **improves concurreny in terms of normal requests** like job polling and downloading.
-* Fix concurreny issues of the scheduler, allowing **multiple workers across multiple GPUs executing jobs at the same time (same model or not), largely boosting computational throughput**.
+* Support running in authorization mode(need register/login/API token) besides the annonymous mode(all clients see all jobs)
+* Separate the router layer from the scheduler layer, allowing multiple uvicorn workers, which improves concurreny in terms of normal requests like job polling and downloading.
+* Fix concurreny issues of the scheduler, allowing multiple workers across multiple GPUs executing jobs at the same time (same model or not), largely boosting computational throughput.
 * Support **docker(one-line command to start up)**, where the redis-server, api worker, scheduler work as separate services.
 
 
@@ -38,10 +45,10 @@ The VRAM requirement is from the pytest results, tested on a single 4090 GPU.
 | Model | Input | Output | VRAM | Features |
 |-------|-------|--------|------|----------|
 | **[TRELLIS](https://github.com/FishWoWater/TRELLIS)** | Text/Image | Textured Mesh | 12GB | Medium-quality, geometry & texture |
-| **[Hunyuan3D-2.0mini](https://github.com/Tencent-Hunyuan/Hunyuan3D-2)** | Image | Raw Mesh | 5GB | Very fast, medium quality, geometry only |
-| **[Hunyuan3D-2.0mini](https://github.com/Tencent-Hunyuan/Hunyuan3D-2)** | Image | Textured Mesh | 14GB | Medium-quality, geometry & texture |
 | **[Hunyuan3D-2.1](https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1)** | Image | Raw Mesh | 8GB | Fast, medium quality, geometry only |
-| **[Hunyuan3D-2.1](https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1)** | Image | Textured Mesh | 19GB | High-quality, geometry & texture |
+| **[Hunyuan3D-2.1](https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1)** | Image | Textured Mesh | 19GB | Medium-quality, geometry & texture |
+| **[TRELLIS.2](https://github.com/microsoft/TRELLIS.2)** | Image | Textured Mesh | 24GB | High-quality textured geometry |
+| **[UltraShape](https://github.com/bytedance/UltraShape)** | Image | Textured Mesh | 25GB | High-quality textured geometry |
 | **[PartPacker](https://github.com/NVlabs/PartPacker)** | Image | Raw Mesh | 10GB | Part-Level, geometry only |
 
 ### Automatic Rigging 
@@ -53,17 +60,13 @@ The VRAM requirement is from the pytest results, tested on a single 4090 GPU.
 | Model | Input | Output | VRAM | Features |
 |-------|-------|--------|------|----------|
 | **[PartField](https://github.com/nv-tlabs/PartField)** | Mesh | Segmented Mesh | 4GB | Semantic part segmentation |
+| **[P3SAM](https://github.com/Tencent-Hunyuan/Hunyuan3D-Part/tree/main/P3-SAM)** | Mesh | Segmented Mesh | 48GB | Semantic part segmentation |
 
-### Part Completion
-| Model | Input | Output | VRAM | Features |
-|-------|-------|--------|------|----------|
-| **[HoloPart](https://github.com/VAST-AI-Research/HoloPart)** | Partial Mesh | Complete Mesh | 10GB | Part completion |
 
 ### Texture Generation (Mesh Painting)
 | Model | Input | Output | VRAM | Features |
 |-------|-------|--------|------|----------|
 | **[TRELLIS Paint](https://github.com/FishWoWater/TRELLIS)** | Text/Image + Mesh | Textured Mesh | 8GB/4GB | Text/image-guided painting |
-| **[Hunyuan3D-2.0 Paint](https://github.com/Tencent-Hunyuan/Hunyuan3D-2)** | Mesh + Image   | Textured Mesh | 11GB | Medium-quality texture synthesis |
 | **[Hunyuan3D-2.1 Paint](https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1)** | Mesh + Image   | Textured Mesh | 12GB | High-quality texture synthesis, PBR |
 
 ### Mesh Re-topology (Auto Regressive Mesh Generation)
@@ -75,6 +78,12 @@ The VRAM requirement is from the pytest results, tested on a single 4090 GPU.
 | Model | Input | Output | VRAM | Features |
 |-------|-------|--------|------|----------|
 | **[PartUV](https://github.com/EricWang12/PartUV/)** | Mesh | Mesh w/ UV | 7GB | Part-Based UV Unwrapping |
+
+### Mesh Editing (Local 3D Editing)
+| Model | Input | Output | VRAM | Features |
+|-------|-------|--------|------|----------|
+| **[VoxHammer](https://github.com/Nelipot-Lee/VoxHammer)** (Text) | Mesh + Text Prompts | Edited Mesh | 40GB | Text-guided local mesh editing |
+| **[VoxHammer](https://github.com/Nelipot-Lee/VoxHammer)** (Image) | Mesh + Reference Images | Edited Mesh | 40GB | Image-guided local mesh editing |
 
 
 ## Quick Start
@@ -109,12 +118,12 @@ cd 3DAIGC-API
 # on linux
 chmod +x install.sh
 ./scripts/install.sh
-# on windows 
+# on windows (still base on trellisv1)
 .\scripts\install.bat 
 ```
 The installation script will:
-- Set up the TRELLIS environment as base.
-- Install all model dependencies (PartField, Hunyuan3D, HoloPart, UniRig, PartPacker).
+- Set up the TRELLIS.2 environment as base.
+- Install all model dependencies (PartField, Hunyuan3D, UniRig, PartPacker).
 - Install FastAPI and backend dependencies.
 
 3. **Download pre-trained models(optional, or download automatically)**:
@@ -134,21 +143,7 @@ chmod +x download_models.sh
 .\scripts\download_models.bat
 ```
 
-#### Running the Server(Single-Worker Mode)
-```bash
-# on linux 
-chmod +x scripts/run_server.sh
-# development mode (auto-reload)
-P3D_RELOAD=true ./scripts/run_server.sh
-# production mode, (notice that you also need to change the .yaml specification)
-P3D_RELOAD=false ./scripts/run_server.sh
-# custom configuration
-P3D_HOST=0.0.0.0 P3D_PORT=7842  ./scripts/run_server.sh
-
-# or on windows 
-.\scripts\run_server.bat 
-```
-#### Running the Server (Multi-Worker Mode, Recommended)
+#### Running the Server
 ```bash 
 chmod a+x ./scripts/run_multiwork.sh
 ./scripts/run_multiworker.sh
@@ -208,10 +203,6 @@ curl -X GET "http://localhost:7842/api/v1/system/models"
     "model_count":1,
     "models":["unirig_auto_rig"]
     },
-    {"name":"part_completion",
-    "model_count":1,
-    "models":["holopart_part_completion"]
-    }
   ],
   "total_features":8
 }
@@ -417,6 +408,131 @@ curl "http://localhost:7842/api/v1/system/jobs/{job_id}/download" \
 curl "http://localhost:7842/api/v1/mesh-uv-unwrapping/pack-methods"
 ```
 </details>
+
+### UltraShape - High-Quality Mesh Generation
+<details>
+<summary> UltraShape Refined Mesh Generation Example </summary>
+
+```bash
+# 1. Upload image file
+curl -X POST "http://localhost:7842/api/v1/file-upload/image" \
+  -F "file=@/path/to/image.jpg"
+# Response: {"file_id": "img_abc123", ...}
+
+# 2. Generate refined mesh using UltraShape
+curl -X POST "http://localhost:7842/api/v1/mesh-generation/image-to-raw-mesh" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "image_file_id": "img_abc123",
+    "output_format": "glb",
+    "model_preference": "ultrashape_image_to_raw_mesh",
+    "num_inference_steps": 50,
+    "num_latents": 32768,
+    "octree_res": 1024,
+    "seed": 42
+  }'
+# Response: {"job_id": "ultra_job_123", ...}
+
+# 3. Download refined mesh
+curl "http://localhost:7842/api/v1/system/jobs/ultra_job_123/download" \
+  -o "refined_mesh.glb"
+```
+</details>
+
+### VoxHammer - Local Mesh Editing
+<details>
+<summary> Text-Guided Mesh Editing Example </summary>
+
+```bash
+# 1. Upload mesh file
+curl -X POST "http://localhost:7842/api/v1/file-upload/mesh" \
+  -F "file=@/path/to/mesh.glb"
+# Response: {"file_id": "mesh_xyz", ...}
+
+# 2. Edit mesh with text guidance (bounding box mask)
+curl -X POST "http://localhost:7842/api/v1/mesh-editing/text-mesh-editing" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mesh_file_id": "mesh_xyz",
+    "mask_bbox": {
+      "center": [0.0, 0.5, 0.0],
+      "dimensions": [0.3, 0.3, 0.3]
+    },
+    "source_prompt": "dragon head",
+    "target_prompt": "dragon head with horns",
+    "num_views": 150,
+    "resolution": 512,
+    "output_format": "glb",
+    "model_preference": "voxhammer_text_mesh_editing"
+  }'
+# Response: {"job_id": "edit_job_123", ...}
+
+# Alternative: Use ellipsoid mask
+curl -X POST "http://localhost:7842/api/v1/mesh-editing/text-mesh-editing" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mesh_file_id": "mesh_xyz",
+    "mask_ellipsoid": {
+      "center": [0.0, 0.3, 0.0],
+      "radii": [0.2, 0.2, 0.2]
+    },
+    "source_prompt": "smooth surface",
+    "target_prompt": "textured surface",
+    "model_preference": "voxhammer_text_mesh_editing"
+  }'
+
+# 3. Download edited mesh
+curl "http://localhost:7842/api/v1/system/jobs/edit_job_123/download" \
+  -o "edited_mesh.glb"
+
+# 4. Check supported mask types
+curl "http://localhost:7842/api/v1/mesh-editing/supported-masks"
+```
+</details>
+
+<details>
+<summary> Image-Guided Mesh Editing Example </summary>
+
+```bash
+# 1. Upload mesh and reference images
+curl -X POST "http://localhost:7842/api/v1/file-upload/mesh" \
+  -F "file=@mesh.glb"
+# Response: {"file_id": "mesh_abc", ...}
+
+curl -X POST "http://localhost:7842/api/v1/file-upload/image" \
+  -F "file=@source_render.png"
+# Response: {"file_id": "src_img", ...}
+
+curl -X POST "http://localhost:7842/api/v1/file-upload/image" \
+  -F "file=@target_edit.png"
+# Response: {"file_id": "tgt_img", ...}
+
+curl -X POST "http://localhost:7842/api/v1/file-upload/image" \
+  -F "file=@2d_mask.png"
+# Response: {"file_id": "mask_img", ...}
+
+# 2. Edit mesh with image guidance
+curl -X POST "http://localhost:7842/api/v1/mesh-editing/image-mesh-editing" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mesh_file_id": "mesh_abc",
+    "source_image_file_id": "src_img",
+    "target_image_file_id": "tgt_img",
+    "mask_image_file_id": "mask_img",
+    "mask_bbox": {
+      "center": [0.0, 0.5, 0.0],
+      "dimensions": [0.4, 0.4, 0.4]
+    },
+    "num_views": 150,
+    "resolution": 512,
+    "model_preference": "voxhammer_image_mesh_editing"
+  }'
+
+# 3. Download edited mesh
+curl "http://localhost:7842/api/v1/system/jobs/{job_id}/download" \
+  -o "edited_mesh.glb"
+```
+</details>
 <br>
 For more examples, check out [API doc](./docs/api_documentation.md). Notice that the uploaded file may have a expired time.
 
@@ -498,15 +614,15 @@ python scripts/create_admin_user.py
 For full documentation, see [User Management Guide](./docs/user_management.md).
 
 ## Notes 
-1. The system supports both **single-worker** (`api/main.py`) and **multi-worker** (`api/main_multiworker.py` + `scripts/scheduler_service.py`) deployment modes. For production with multiple workers, use the multi-worker setup with Redis.
-2. Frequently loading/unloading models is very slow (as can be observed in the test client). Better to enable ONLY required models and always keep them in the VRAM in practice.
-3. A lot of the code is written by vibe coding (Cursor + Claude4), Claude4 is a good software engineer, and I have learnt a lot from him/her in system design. Have a look at [vibe coding prompt](./docs/vibe_coding_prompt.md) and [vibe coding READMEs](./docs/vibe_coding/) if interested.
+1. Frequently loading/unloading models is very slow (as can be observed in the test client). Better to enable ONLY required models and always keep them in the VRAM in practice.
+2. A lot of the code is written by vibe coding (Cursor + Claude4), Claude4 is a good software engineer, and I have learnt a lot from him/her in system design. Have a look at [vibe coding prompt](./docs/vibe_coding_prompt.md) and [vibe coding READMEs](./docs/vibe_coding/) if interested.
 
 ## TODO
 ### Short-Term 
 - [x] Better orgnaize (cleanup) the output directory of current API service
+- [x] Expose and support more parameters (e.g. decimation ratio in mesh generation)
+- [ ] Integrate better remeshing algoirthms and native quad-mesh remeshing algoirthms.
 - [ ] Support multiview images as the condition in mesh generation models
-- [ ] Expose and support more parameters (e.g. decimation ratio in mesh generation)
 
 ### Long-Term 
 - [x] Job queue and scheduler switches to sql

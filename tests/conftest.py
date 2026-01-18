@@ -16,7 +16,7 @@ from fastapi.testclient import TestClient
 from api.dependencies import get_scheduler
 
 # Import the main app and dependencies
-from api.main import app
+from api.main_multiworker import app
 
 # Test data and fixtures
 TEST_PROMPTS = [

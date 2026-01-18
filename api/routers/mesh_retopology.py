@@ -73,6 +73,10 @@ class MeshRetopologyRequest(BaseModel):
         "fastmesh_v1k_retopology",
         description="Name of the retopology model to use (fastmesh_v1k_retopology or fastmesh_v4k_retopology)",
     )
+    model_parameters: Optional[dict] = Field(
+        None, 
+        description="Model-specific parameters (query /system/models/{model_id}/parameters for schema)"
+    )
 
     @field_validator("output_format")
     @classmethod
@@ -174,6 +178,7 @@ async def retopologize_mesh(
                 "target_vertex_count": request.target_vertex_count,
                 "output_format": request.output_format,
                 "seed": request.seed,
+                **(request.model_parameters or {}),
             },
             model_preference=request.model_preference,
             priority=1,

@@ -65,6 +65,10 @@ class AutoRigRequest(BaseModel):
     model_preference: str = Field(
         "unirig_auto_rig", description="Name of the auto-rigging model to use"
     )
+    model_parameters: Optional[dict] = Field(
+        None, 
+        description="Model-specific parameters (query /system/models/{model_id}/parameters for schema)"
+    )
 
     @field_validator("output_format")
     @classmethod
@@ -155,6 +159,7 @@ async def generate_rig(
                 "rig_mode": request.rig_mode.lower(),
                 "mesh_path": mesh_file_path,
                 "output_format": request.output_format,
+                **(request.model_parameters or {}),
             },
             model_preference=request.model_preference,
             priority=1,

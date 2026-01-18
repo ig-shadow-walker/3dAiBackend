@@ -12,11 +12,11 @@ from typing import Any, Dict, List, Optional
 
 import torch
 
+from utils.fastmesh_utils import FastMeshRunner
 from core.models.base import ModelStatus
 from core.models.retopo_models import MeshRetopologyModel
-from utils.file_utils import OutputPathGenerator
-from utils.mesh_utils import MeshProcessor
-from utils.fastmesh_utils import FastMeshRunner
+from core.utils.file_utils import OutputPathGenerator
+from core.utils.mesh_utils import MeshProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -229,5 +229,31 @@ class FastMeshRetopologyAdapter(MeshRetopologyModel):
         return {
             "input": ["obj", "glb", "ply", "stl"],
             "output": ["obj", "glb", "ply"],
+        }
+    
+    def get_parameter_schema(self) -> Dict[str, Any]:
+        """
+        Return JSON Schema describing model-specific parameters.
+        
+        Returns:
+            Parameter schema dictionary
+        """
+        return {
+            "parameters": {
+                "seed": {
+                    "type": "integer",
+                    "description": "Random seed for reproducibility",
+                    "default": None,
+                    "minimum": 0,
+                    "required": False
+                },
+                "poly_type": {
+                    "type": "string",
+                    "description": "Polygon type for output mesh",
+                    "default": "tri",
+                    "enum": ["tri", "quad"],
+                    "required": False
+                }
+            }
         }
 

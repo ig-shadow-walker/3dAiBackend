@@ -14,14 +14,22 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
-
   # GPU Scheduler Service (single instance, handles all GPU jobs)
   scheduler:
     image: fishwowater/3daigc-api
     build:
       context: .
       dockerfile: Dockerfile
+      network: host
+      args:
+        - http_proxy=http://127.0.0.1:7890
+        - https_proxy=http://127.0.0.1:7890
+        - no_proxy=localhost,127.0.0.1
+      extra_hosts:
+        - "host.docker.internal:host-gateway"
     container_name: 3daigc-scheduler
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: conda run --no-capture-output -n 3daigc-api python scripts/scheduler_service.py --redis-url redis://redis:6379 --log-level info
     volumes:
       - ./data:/app/data
@@ -30,13 +38,13 @@ services:
       - ./logs:/app/logs
       - ./config:/app/config:ro
     environment:
-      - http_proxy=http://127.0.0.1:7890
-      - https_proxy=http://127.0.0.1:7890
+      - http_proxy=http://host.docker.internal:7890
+      - https_proxy=http://host.docker.internal:7890
       - PYTHONPATH=/app
       - P3D_REDIS_URL=redis://redis:6379
       - ENVIRONMENT=production
       - CUDA_VISIBLE_DEVICES=0,1,5,6,7
-      - TORCH_CUDA_ARCH_LIST="6.0 6.1 7.0 7.5 8.0 8.6"
+      - TORCH_CUDA_ARCH_LIST="6.0 6.1 7.0 7.5 8.0 8.6 8.9"
       - P3D_USER_AUTH_ENABLED=${P3D_USER_AUTH_ENABLED:-false}
       - P3D_DEBUG=${P3D_DEBUG:-false}
     runtime: nvidia
@@ -64,7 +72,16 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      network: host
+      args:
+        - http_proxy=http://127.0.0.1:7890
+        - https_proxy=http://127.0.0.1:7890
+        - no_proxy=localhost,127.0.0.1
+      extra_hosts:
+        - "host.docker.internal:host-gateway"
     container_name: 3daigc-api
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: conda run --no-capture-output -n 3daigc-api uvicorn api.main_multiworker:app --host 0.0.0.0 --port 7842 --workers 4 --log-level info
     ports:
       - "7842:7842"
@@ -75,13 +92,13 @@ services:
       - ./logs:/app/logs
       - ./config:/app/config:ro
     environment:
-      - http_proxy=http://127.0.0.1:7890
-      - https_proxy=http://127.0.0.1:7890
+      - http_proxy=http://host.docker.internal:7890
+      - https_proxy=http://host.docker.internal:7890
       - PYTHONPATH=/app
       - P3D_REDIS_URL=redis://redis:6379
       - ENVIRONMENT=production
       - CUDA_VISIBLE_DEVICES=0,1,5,6,7
-      - TORCH_CUDA_ARCH_LIST="6.0 6.1 7.0 7.5 8.0 8.6"
+      - TORCH_CUDA_ARCH_LIST="6.0 6.1 7.0 7.5 8.0 8.6 8.9"
       - P3D_USER_AUTH_ENABLED=${P3D_USER_AUTH_ENABLED:-false}
       - P3D_DEBUG=${P3D_DEBUG:-false}
     runtime: nvidia

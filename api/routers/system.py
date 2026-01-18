@@ -80,21 +80,6 @@ async def system_info(
             "environment": settings.environment,
             "debug": settings.debug,
         },
-        "configuration": {
-            "server": {
-                "host": settings.server.host,
-                "port": settings.server.port,
-                "workers": settings.server.workers,
-            },
-            "gpu": {
-                "auto_detect": settings.gpu.auto_detect,
-                "memory_buffer": settings.gpu.memory_buffer,
-            },
-            "storage": {
-                "input_dir": settings.storage.input_dir,
-                "output_dir": settings.storage.output_dir,
-            },
-        },
     }
 
 
@@ -155,6 +140,67 @@ async def system_status(
         status["gpu"] = f"Error getting GPU info: {str(e)}"
 
     return status
+
+
+@router.get("/models/{model_id}/parameters", summary="Get model parameters")
+async def get_model_parameters(
+    model_id: str,
+    scheduler: MultiprocessModelScheduler = Depends(get_scheduler),
+    _: bool = Depends(verify_api_key)
+):
+    """
+    Get parameter schema for a specific model.
+    
+    Returns JSON Schema describing all model-specific parameters including:
+    - Parameter types, defaults, constraints
+    - Descriptions and validation rules
+    
+    Args:
+        model_id: The model identifier (e.g., "trellis2_image_to_textured_mesh")
+    
+    Returns:
+        Parameter schema dictionary with parameter specifications
+    """
+    try:
+        # Get model configs from scheduler
+        model_configs = scheduler.model_configs
+        
+        if model_id not in model_configs:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Model '{model_id}' not found. Available models: {list(model_configs.keys())}"
+            )
+        
+        model_config = model_configs[model_id]
+        
+        # Instantiate model temporarily to get schema
+        from core.scheduler.model_factory import ModelFactory
+        
+        try:
+            model_instance = ModelFactory.create_model_from_config(model_config)
+            schema = model_instance.get_parameter_schema()
+            
+            return {
+                "model_id": model_id,
+                "feature_type": model_config.get("feature_type"),
+                "vram_requirement": model_config.get("vram_requirement"),
+                "schema": schema,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        except Exception as e:
+            logger.error(f"Failed to get parameters for model {model_id}: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to get parameters for model: {str(e)}"
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting model parameters: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error: {str(e)}"
+        )
 
 
 @router.get("/models", summary="List available models")

@@ -13,11 +13,11 @@ from typing import Any, Dict, List, Optional
 
 import torch
 
+from utils.partfield_utils import PartFieldRunner
 from core.models.base import ModelStatus
 from core.models.segment_models import MeshSegmentationModel
-from utils.file_utils import OutputPathGenerator
-from utils.mesh_utils import MeshProcessor
-from utils.partfield_utils import PartFieldRunner
+from core.utils.file_utils import OutputPathGenerator
+from core.utils.mesh_utils import MeshProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -344,3 +344,49 @@ class PartFieldSegmentationAdapter(MeshSegmentationModel):
     def get_supported_formats(self) -> Dict[str, List[str]]:
         """Return supported input/output formats for PartField."""
         return {"input": ["glb", "obj"], "output": ["glb"]}
+    
+    def get_parameter_schema(self) -> Dict[str, Any]:
+        """
+        Return JSON Schema describing model-specific parameters.
+        
+        Returns:
+            Parameter schema dictionary
+        """
+        return {
+            "parameters": {
+                "num_parts": {
+                    "type": "integer",
+                    "description": "Target number of semantic parts to segment",
+                    "default": 6,
+                    "minimum": 2,
+                    "maximum": 20,
+                    "required": False
+                },
+                "segmentation_method": {
+                    "type": "string",
+                    "description": "Segmentation method to use",
+                    "default": "semantic",
+                    "enum": ["semantic"],
+                    "required": False
+                },
+                "use_hierarchical": {
+                    "type": "boolean",
+                    "description": "Whether to use hierarchical clustering",
+                    "default": True,
+                    "required": False
+                },
+                "alg_option": {
+                    "type": "integer",
+                    "description": "Algorithm option for clustering (0, 1, or 2)",
+                    "default": 0,
+                    "enum": [0, 1, 2],
+                    "required": False
+                },
+                "export_colored_mesh": {
+                    "type": "boolean",
+                    "description": "Whether to export colored PLY files for parts",
+                    "default": True,
+                    "required": False
+                }
+            }
+        }

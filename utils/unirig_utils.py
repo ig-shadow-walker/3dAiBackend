@@ -28,7 +28,7 @@ from thirdparty.UniRig.src.tokenizer.parse import get_tokenizer
 from thirdparty.UniRig.src.tokenizer.spec import TokenizerConfig
 
 CONFIG_PREFIX = "thirdparty/UniRig"
-
+torch.serialization.add_safe_globals([Box])
 
 @dataclass
 class InferenceConfig:

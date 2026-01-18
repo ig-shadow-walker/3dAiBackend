@@ -5,12 +5,6 @@ This package contains adapters that bridge between our model specifications
 and actual AI model implementations.
 """
 
-from .holopart_adapter import HoloPartCompletionAdapter
-from .hunyuan3d_adapter_v20 import (
-    Hunyuan3DV20ImageMeshPaintingAdapter,
-    Hunyuan3DV20ImageToRawMeshAdapter,
-    Hunyuan3DV20ImageToTexturedMeshAdapter,
-)
 from .hunyuan3d_adapter_v21 import (
     Hunyuan3DV21ImageMeshPaintingAdapter,
     Hunyuan3DV21ImageToRawMeshAdapter,
@@ -24,13 +18,14 @@ from .trellis_adapter import (
     TrellisTextMeshPaintingAdapter,
     TrellisTextToTexturedMeshAdapter,
 )
+from .trellis2_adapter import (
+    Trellis2ImageMeshPaintingAdapter,
+    Trellis2ImageToTexturedMeshAdapter,
+
+)
 from .unirig_adapter import UniRigAdapter
 
 __all__ = [
-    "HoloPartCompletionAdapter",
-    "Hunyuan3DV20ImageMeshPaintingAdapter",
-    "Hunyuan3DV20ImageToRawMeshAdapter",
-    "Hunyuan3DV20ImageToTexturedMeshAdapter",
     "Hunyuan3DV21ImageMeshPaintingAdapter",
     "Hunyuan3DV21ImageToRawMeshAdapter",
     "Hunyuan3DV21ImageToTexturedMeshAdapter",
@@ -40,5 +35,7 @@ __all__ = [
     "TrellisImageToTexturedMeshAdapter",
     "TrellisTextMeshPaintingAdapter",
     "TrellisTextToTexturedMeshAdapter",
+    "Trellis2ImageMeshPaintingAdapter",
+    "Trellis2ImageToTexturedMeshAdapter",
     "UniRigAdapter",
 ]

@@ -1,4 +1,4 @@
 # API module
-from .main import app
+from .main_multiworker import app
 
 __all__ = ["app"]

@@ -81,7 +81,7 @@ This document describes the architecture of a scalable and extensible FastAPI se
 #### 3.1 Text/Image Conditioned Mesh Generation
 - **Input**: Text prompt OR Single/Multiple images
 - **Output**: Textured 3D mesh (GLB/OBJ/FBX)
-- **Models**: TRELLIS, Hunyuan3D-2, HoloPart
+- **Models**: TRELLIS, Hunyuan3D-2
 - **VRAM Requirements**: 8GB - 40GB
 
 #### 3.2 Text/Image Conditioned Texture Generation
@@ -93,7 +93,7 @@ This document describes the architecture of a scalable and extensible FastAPI se
 #### 3.3 Mesh Segmentation
 - **Input**: GLB mesh
 - **Output**: Segmented GLB mesh with part labels
-- **Models**: PartField, HoloPart
+- **Models**: PartField
 - **VRAM Requirements**: 4GB - 16GB
 
 #### 3.4 Auto-Rigging

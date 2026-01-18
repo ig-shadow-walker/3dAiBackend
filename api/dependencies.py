@@ -150,6 +150,20 @@ class SchedulerAdapter:
             return self._scheduler.job_queue
         else:
             return self._job_queue
+    
+    @property
+    def model_configs(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Get model configurations (for compatibility with code expecting scheduler.model_configs).
+        
+        Returns the model registry in both single-worker and multi-worker modes.
+        """
+        if self._scheduler:
+            # Single-worker mode: get from actual scheduler
+            return getattr(self._scheduler, 'model_configs', {})
+        else:
+            # Multi-worker mode: return our loaded registry
+            return self._model_registry
 
 async def get_current_settings():
     """Get current application settings"""

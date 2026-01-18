@@ -12,7 +12,6 @@ Features tested:
 - Image-mesh-painting (TRELLIS, Hunyuan3D)
 - Image-to-raw-mesh (Hunyuan3D, PartPacker)
 - Mesh segmentation (PartField)
-- Part generation/completion (HoloPart)
 - Auto-rigging (UniRig)
 
 Execution Modes:
@@ -288,36 +287,6 @@ class ComprehensiveModelTester:
                 }
             )
 
-        # Hunyuan3D models (just test one image each)
-        if image_files:
-            configs.extend(
-                [
-                    {
-                        "test_name": f"hunyuan3dv20_image_to_textured_mesh_{image_files[0].stem}",
-                        "feature": "image_to_textured_mesh",
-                        "endpoint": "/mesh-generation/image-to-textured-mesh",
-                        "model_preference": "hunyuan3dv20_image_to_textured_mesh",
-                        "input_data": {
-                            "texture_resolution": 1024,
-                            "output_format": "glb",
-                        },
-                        "expected_outputs": ["output_mesh_path"],
-                        "files_to_upload": [("image", str(image_files[0]))],
-                    },
-                    {
-                        "test_name": f"hunyuan3dv20_image_to_textured_mesh_{image_files[0].stem}",
-                        "feature": "image_to_textured_mesh",
-                        "endpoint": "/mesh-generation/image-to-textured-mesh",
-                        "model_preference": "hunyuan3dv20_image_to_textured_mesh",
-                        "input_data": {
-                            "texture_resolution": 1024,
-                            "output_format": "glb",
-                        },
-                        "expected_outputs": ["output_mesh_path"],
-                        "files_to_upload": [("image", str(image_files[0]))],
-                    },
-                ]
-            )
 
         # 4. Image-mesh-painting tests
         for i, (image_file, mesh_file) in enumerate(
@@ -340,21 +309,6 @@ class ComprehensiveModelTester:
                             ("mesh", str(mesh_file)),
                         ],
                     },
-                    {
-                        "test_name": f"hunyuan3dv20_image_mesh_painting_{image_file.stem}_{mesh_file.stem}",
-                        "feature": "image_mesh_painting",
-                        "endpoint": "/mesh-generation/image-mesh-painting",
-                        "model_preference": "hunyuan3d_image_mesh_painting",
-                        "input_data": {
-                            "texture_resolution": 1024,
-                            "output_format": "glb",
-                        },
-                        "expected_outputs": ["output_mesh_path"],
-                        "files_to_upload": [
-                            ("image", str(image_file)),
-                            ("mesh", str(mesh_file)),
-                        ],
-                    },
                 ]
             )
 
@@ -364,17 +318,6 @@ class ComprehensiveModelTester:
         if image_files:
             configs.extend(
                 [
-                    {
-                        "test_name": f"hunyuan3dv20_image_to_raw_mesh_{image_files[0].stem}",
-                        "feature": "image_to_raw_mesh",
-                        "endpoint": "/mesh-generation/image-to-raw-mesh",
-                        "model_preference": "hunyuan3dv20_image_to_raw_mesh",
-                        "input_data": {
-                            "output_format": "glb",
-                        },
-                        "expected_outputs": ["output_mesh_path"],
-                        "files_to_upload": [("image", str(image_files[0]))],
-                    },
                     {
                         "test_name": f"hunyuan3dv21_image_to_raw_mesh_{image_files[0].stem}",
                         "feature": "image_to_raw_mesh",
@@ -394,10 +337,10 @@ class ComprehensiveModelTester:
         for image_file in partpacker_images:
             configs.append(
                 {
-                    "test_name": f"partpacker_part_packing_{image_file.stem}",
+                    "test_name": f"partpacker_image_to_raw_mesh_{image_file.stem}",
                     "feature": "image_to_raw_mesh",  # PartPacker uses this endpoint
                     "endpoint": "/mesh-generation/image-to-raw-mesh",
-                    "model_preference": "partpacker_part_packing",
+                    "model_preference": "partpacker_image_to_raw_mesh",
                     "input_data": {
                         "output_format": "glb",
                     },
@@ -423,25 +366,8 @@ class ComprehensiveModelTester:
                     "files_to_upload": [("mesh", str(mesh_file))],
                 }
             )
-
-        # 7. Part generation/completion tests (HoloPart)
-        holopart_meshes = list(Path("assets/example_holopart").glob("*.glb"))[:2]
-        for mesh_file in holopart_meshes:
-            configs.append(
-                {
-                    "test_name": f"holopart_part_completion_{mesh_file.stem}",
-                    "feature": "part_completion",
-                    "endpoint": "/mesh-generation/part-completion",  # Uses part-completion endpoint
-                    "model_preference": "holopart_part_completion",
-                    "input_data": {
-                        "output_format": "glb",
-                    },
-                    "expected_outputs": ["output_mesh_path"],
-                    "files_to_upload": [("mesh", str(mesh_file))],
-                }
-            )
-
-        # 8. Auto-rigging tests
+        
+        # 7. Auto-rigging tests
         autorig_meshes = list(Path("assets/example_autorig").glob("*.glb"))[:2]
         for mesh_file in autorig_meshes:
             configs.append(

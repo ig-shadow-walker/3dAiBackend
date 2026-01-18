@@ -7,7 +7,7 @@ echo "The installation may take a while, please wait..."
 echo ""
 
 echo "[INFO] Creating conda environment '3daigc-api' with Python 3.10..."
-# conda create -n 3d python=3.10 -y
+# conda create -n 3daigc-api python=3.10 -y
 if [ $? -eq 0 ]; then
     echo "[SUCCESS] Conda environment created successfully"
 else
@@ -16,11 +16,11 @@ else
 fi
 
 echo "[INFO] Activating conda environment..."
-# conda activate 3d
+# conda activate 3daigc-api
 
-echo "[INFO] Installing PyTorch with CUDA 12.1 support..."
+echo "[INFO] Installing PyTorch with CUDA 12.4 support..."
 ## install pytorch for specific cuda versions
-pip install torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 --index-url https://download.pytorch.org/whl/cu121
+pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124
 if [ $? -eq 0 ]; then
     echo "[SUCCESS] PyTorch installation completed"
 else
@@ -34,16 +34,22 @@ echo "Installing TRELLIS Dependencies"
 echo "========================================"
 ### we startup with the environment of trellis ###
 echo "[INFO] Changing directory to thirdparty/TRELLIS..."
-cd thirdparty/TRELLIS
-echo "[INFO] Running TRELLIS setup script..."
-. ./setup.sh --basic --xformers --flash-attn --diffoctreerast --spconv --mipgaussian --kaolin --nvdiffrast
-pip install kaolin -f https://nvidia-kaolin.s3.us-east-2.amazonaws.com/torch-2.4.0_cu121.html
+cd thirdparty/TRELLIS.2
+echo "[INFO] Running TRELLIS.2 setup script..."
+. ./setup.sh --basic --flash-attn --nvdiffrast --nvdiffrec --cumesh --o-voxel --flexgemm
+pip install kaolin -f https://nvidia-kaolin.s3.us-east-2.amazonaws.com/torch-2.6.0_cu124.html
 if [ $? -eq 0 ]; then
     echo "[SUCCESS] TRELLIS setup completed"
 else
     echo "[ERROR] TRELLIS setup failed"
     exit 1
 fi
+
+echo "[INFO] Installing TRELLIS(v1) requirements on top of TRELLIS.2..."
+pip install pymeshfix igraph 
+git clone https://github.com/autonomousvision/mip-splatting.git /tmp/extensions/mip-splatting
+pip install /tmp/extensions/mip-splatting/submodules/diff-gaussian-rasterization/
+
 # for systems with glibc < 2.29 , you may need to build kaolin from source manually
 echo "[NOTE] For systems with glibc < 2.29, you may need to build kaolin from source manually"
 
@@ -73,7 +79,7 @@ else
 fi
 
 echo "[INFO] Installing PyTorch Geometric extensions..."
-pip install torch-scatter torch_cluster -f https://data.pyg.org/whl/torch-2.4.0+cu121.html
+pip install torch-scatter torch_cluster -f https://data.pyg.org/whl/torch-2.6.0+cu124.html
 if [ $? -eq 0 ]; then
     echo "[SUCCESS] PyTorch Geometric extensions installed"
 else
@@ -83,54 +89,6 @@ fi
 # installation for PartField end 
 echo "[SUCCESS] PartField installation completed"
 
-echo ""
-echo "========================================"
-echo "Installing Hunyuan3D 2.0 Dependencies"
-echo "========================================"
-### install hunyuan3d for mesh generation  ###
-echo "[INFO] Changing directory to thirdparty/Hunyuan3D-2..."
-cd ../../thirdparty/Hunyuan3D-2
-echo "[INFO] Installing Hunyuan3D 2.0 requirements..."
-pip install -r requirements.txt 
-if [ $? -eq 0 ]; then
-    echo "[SUCCESS] Hunyuan3D 2.0 requirements installed"
-else
-    echo "[ERROR] Failed to install Hunyuan3D 2.0 requirements"
-    exit 1
-fi
-
-echo "[INFO] Installing Hunyuan3D 2.0 package..."
-pip install -e .
-if [ $? -eq 0 ]; then
-    echo "[SUCCESS] Hunyuan3D 2.0 package installed"
-else
-    echo "[ERROR] Failed to install Hunyuan3D 2.0 package"
-    exit 1
-fi
-
-echo "[INFO] Building custom rasterizer..."
-cd hy3dgen/texgen/custom_rasterizer
-python3 setup.py install
-if [ $? -eq 0 ]; then
-    echo "[SUCCESS] Custom rasterizer built successfully"
-else
-    echo "[ERROR] Failed to build custom rasterizer"
-    exit 1
-fi
-
-echo "[INFO] Building differentiable renderer..."
-cd ../../..
-cd hy3dgen/texgen/differentiable_renderer
-python3 setup.py install
-cd ../../../
-if [ $? -eq 0 ]; then
-    echo "[SUCCESS] Differentiable renderer built successfully"
-else
-    echo "[ERROR] Failed to build differentiable renderer"
-    exit 1
-fi
-### installation for hunyuan3d 2.0 end ###
-echo "[SUCCESS] Hunyuan3D 2.0 installation completed"
 
 echo ""
 echo "========================================"
@@ -141,7 +99,7 @@ echo "[INFO] Changing directory to thirdparty/Hunyuan3D-2.1..."
 cd ../../thirdparty/Hunyuan3D-2.1
 echo "[INFO] Installing custom rasterizer for Hunyuan3D 2.1..."
 cd hy3dpaint/custom_rasterizer
-pip install -e .
+pip install -e . --no-build-isolation
 if [ $? -eq 0 ]; then
     echo "[SUCCESS] Hunyuan3D 2.1 custom rasterizer installed"
 else
@@ -164,24 +122,6 @@ echo "[INFO] Installing Hunyuan3D 2.1 requirements..."
 pip install -r requirements-inference.txt 
 ### installation for hunyuan3d 2.1 end ###
 echo "[SUCCESS] Hunyuan3D 2.1 installation completed"
-
-echo ""
-echo "========================================"
-echo "Installing HoloPart Dependencies"
-echo "========================================"
-### holopart for part completion  ###
-echo "[INFO] Changing directory to thirdparty/HoloPart..."
-cd ../../thirdparty/HoloPart
-echo "[INFO] Installing HoloPart requirements..."
-pip install -r requirements.txt 
-if [ $? -eq 0 ]; then
-    echo "[SUCCESS] HoloPart requirements installed"
-else
-    echo "[ERROR] Failed to install HoloPart requirements"
-    exit 1
-fi
-### holopart for part completion end ###
-echo "[SUCCESS] HoloPart installation completed"
 
 echo ""
 echo "========================================"
@@ -208,6 +148,7 @@ echo "========================================"
 echo "[INFO] Changing directory to thirdparty/PartPacker..."
 cd ../../thirdparty/PartPacker
 echo "[INFO] Installing PartPacker requirements..."
+pip install pybind11==3.0.1
 pip install meshiki kiui fpsample pymcubes einops
 if [ $? -eq 0 ]; then
     echo "[SUCCESS] PartPacker requirements installed"
@@ -230,8 +171,25 @@ fi
 pip install blenderproc 
 ### partuv end ###
 
+### P3-SAM (Hunyuan3D-Part) ###
+echo ""
+echo "========================================"
+echo "Installing P3-SAM Dependencies"
+echo "========================================"
+cd ../../thirdparty/Hunyuan3DPart/P3SAM
+echo "[INFO] Installing P3-SAM requirements..."
+# Install numba for acceleration
+pip install numba scikit-learn fpsample
+if [ $? -eq 0 ]; then
+    echo "[SUCCESS] P3-SAM requirements installed"
+else
+    echo "[ERROR] Failed to install P3-SAM requirements"
+    exit 1
+fi
+### P3-SAM end ###
+
 ### FastMesh ###
-cd ../../thirdparty/FastMesh 
+cd ../../../thirdparty/FastMesh 
 echo "[INFO] Installing FastMesh requirements..."
 pip install -r requirement_extra.txt
 if [ $? -eq 0 ]; then
@@ -241,6 +199,44 @@ else
     exit 1
 fi
 ### FastMesh end ###
+
+### UltraShape ###
+echo ""
+echo "========================================"
+echo "Installing UltraShape Dependencies"
+echo "========================================"
+cd ../../../thirdparty/UltraShape
+echo "[INFO] Installing UltraShape requirements..."
+# pip install -r requirements.txt
+# actually only cubvh is required based besides trellis.2 env  
+pip install git+https://github.com/ashawkey/cubvh --no-build-isolation
+if [ $? -eq 0 ]; then
+    echo "[SUCCESS] UltraShape requirements installed"
+else
+    echo "[ERROR] Failed to install UltraShape requirements"
+    exit 1
+fi
+### UltraShape end ###
+
+### VoxHammer ###
+echo ""
+echo "========================================"
+echo "Installing VoxHammer Dependencies"
+echo "========================================"
+cd ../VoxHammer
+echo "[INFO] Installing VoxHammer requirements..."
+# pip install -r requirements.txt
+# only bpy-renderer and pysdf are required besides trellis.2 env  
+pip install git+https://github.com/huanngzh/bpy-renderer.git
+pip install pysdf setencepiece
+if [ $? -eq 0 ]; then
+    echo "[SUCCESS] VoxHammer requirements installed"
+else
+    echo "[ERROR] Failed to install VoxHammer requirements"
+    exit 1
+fi
+echo "[NOTE] VoxHammer uses TRELLIS pipeline which is already installed"
+### VoxHammer end ###
 
 cd ../../
 

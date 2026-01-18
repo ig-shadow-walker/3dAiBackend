@@ -12,11 +12,11 @@ from typing import Any, Dict, List, Optional
 
 import torch
 
+from utils.partpacker_utils import PartPackerRunner
 from core.models.base import ModelStatus
 from core.models.mesh_models import ImageToMeshModel
-from utils.file_utils import OutputPathGenerator
-from utils.mesh_utils import MeshProcessor
-from utils.partpacker_utils import PartPackerRunner
+from core.utils.file_utils import OutputPathGenerator
+from core.utils.mesh_utils import MeshProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -262,3 +262,65 @@ class PartPackerImageToRawMeshAdapter(ImageToMeshModel):
     def get_supported_formats(self) -> Dict[str, List[str]]:
         """Return supported input/output formats for PartPacker."""
         return {"input": ["png", "jpg", "jpeg"], "output": ["glb", "obj"]}
+    
+    def get_parameter_schema(self) -> Dict[str, Any]:
+        """
+        Return JSON Schema describing model-specific parameters.
+        
+        Returns:
+            Parameter schema dictionary
+        """
+        return {
+            "parameters": {
+                "num_steps": {
+                    "type": "integer",
+                    "description": "Number of diffusion sampling steps",
+                    "default": 30,
+                    "minimum": 10,
+                    "maximum": 100,
+                    "required": False
+                },
+                "cfg_scale": {
+                    "type": "number",
+                    "description": "Classifier-free guidance scale",
+                    "default": 7.0,
+                    "minimum": 1.0,
+                    "maximum": 15.0,
+                    "required": False
+                },
+                "grid_resolution": {
+                    "type": "integer",
+                    "description": "Grid resolution for mesh extraction",
+                    "default": 384,
+                    "enum": [256, 384, 512],
+                    "required": False
+                },
+                "num_faces": {
+                    "type": "integer",
+                    "description": "Target number of faces for output mesh",
+                    "default": 50000,
+                    "minimum": 10000,
+                    "maximum": 200000,
+                    "required": False
+                },
+                "seed": {
+                    "type": "integer",
+                    "description": "Random seed for reproducibility",
+                    "default": None,
+                    "minimum": 0,
+                    "required": False
+                },
+                "return_parts": {
+                    "type": "boolean",
+                    "description": "Whether to save individual part meshes",
+                    "default": True,
+                    "required": False
+                },
+                "return_volumes": {
+                    "type": "boolean",
+                    "description": "Whether to save dual volume meshes",
+                    "default": False,
+                    "required": False
+                }
+            }
+        }

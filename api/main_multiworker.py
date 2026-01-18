@@ -36,6 +36,7 @@ from core.utils.exceptions import BaseAPIException
 from .routers import (
     auto_rigging,
     file_upload,
+    mesh_editing,
     mesh_generation,
     mesh_retopology,
     mesh_segmentation,
@@ -285,6 +286,8 @@ app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(file_upload.router, prefix="/api/v1", tags=["File Upload"])
 
 app.include_router(mesh_generation.router, prefix="/api/v1", tags=["Mesh Generation"])
+
+app.include_router(mesh_editing.router, prefix="/api/v1", tags=["Mesh Editing"])
 
 app.include_router(auto_rigging.router, prefix="/api/v1", tags=["Auto Rigging"])
 

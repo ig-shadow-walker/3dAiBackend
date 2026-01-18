@@ -159,24 +159,6 @@ echo [SUCCESS] Hunyuan3D 2.1 installation completed
 
 echo.
 echo ========================================
-echo Installing HoloPart Dependencies
-echo ========================================
-REM holopart for part completion
-echo [INFO] Changing directory to thirdparty\HoloPart...
-cd ..\..\thirdparty\HoloPart
-echo [INFO] Installing HoloPart requirements...
-call pip install -r requirements.txt 
-if %ERRORLEVEL% equ 0 (
-    echo [SUCCESS] HoloPart requirements installed
-) else (
-    echo [ERROR] Failed to install HoloPart requirements
-    exit /b 1
-)
-REM holopart for part completion end
-echo [SUCCESS] HoloPart installation completed
-
-echo.
-echo ========================================
 echo Installing UniRig Dependencies
 echo ========================================
 REM unirig for auto-rigging
@@ -209,6 +191,40 @@ if %ERRORLEVEL% equ 0 (
 )
 REM part packer end
 echo [SUCCESS] PartPacker installation completed
+
+echo.
+echo ========================================
+echo Installing UltraShape Dependencies
+echo ========================================
+cd ..\..\thirdparty\UltraShape
+echo [INFO] Installing UltraShape requirements...
+@REM call pip install -r requirements.txt
+@REM actually only cubvh is required based besides trellis.2 env  
+call pip install git+https://github.com/ashawkey/cubvh --no-build-isolation
+if %ERRORLEVEL% equ 0 (
+    echo [SUCCESS] UltraShape requirements installed
+) else (
+    echo [ERROR] Failed to install UltraShape requirements
+    exit /b 1
+)
+
+echo.
+echo ========================================
+echo Installing VoxHammer Dependencies
+echo ========================================
+cd ..\VoxHammer
+echo [INFO] Installing VoxHammer requirements...
+@REM call pip install -r requirements.txt
+@REM only bpy-renderer and pysdf are required besides trellis.2 env  
+call pip install git+https://github.com/huanngzh/bpy-renderer.git
+call pip install pysdf setencepiece
+if %ERRORLEVEL% equ 0 (
+    echo [SUCCESS] VoxHammer requirements installed
+) else (
+    echo [ERROR] Failed to install VoxHammer requirements
+    exit /b 1
+)
+echo [NOTE] VoxHammer uses TRELLIS pipeline which is already installed
 
 cd ..\..
 

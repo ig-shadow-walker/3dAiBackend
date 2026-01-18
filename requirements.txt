@@ -51,7 +51,7 @@ redis==5.0.1  # For caching and job queues
 # tsinghua endpoint not work for tb-nightly 
 tb-nightly
 pydantic[email]
-transformers==4.46.0
+transformers==4.57.3
 pyyaml
 realesrgan==0.3.0
 peft==0.17.1

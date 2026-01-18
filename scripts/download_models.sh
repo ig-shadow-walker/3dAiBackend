@@ -5,7 +5,7 @@
 # 
 # Available models:
 #   partfield, hunyuan2, hunyuan2mini, hunyuan21, trellis, trellis-text, 
-#   holopart, unirig, partpacker, misc, all
+#   unirig, partpacker, misc, all
 #
 # Options:
 #   -h, --help              Show this help message
@@ -35,7 +35,7 @@ VERIFY_ONLY=false
 FORCE_DOWNLOAD=false
 
 # Available models
-AVAILABLE_MODELS=("partfield" "hunyuan2" "hunyuan2mini" "hunyuan21" "trellis" "trellis-text" "holopart" "unirig" "partpacker" "partuv" "fastmesh" "misc" "all")
+AVAILABLE_MODELS=("partfield" "hunyuan21" "trellis" "trellis-text" "trellis2" "p3sam" "unirig" "partpacker" "partuv" "fastmesh" "ultrashape" "misc" "all")
 
 show_help() {
     cat << EOF
@@ -52,22 +52,22 @@ Options:
 
 Available models:
     partfield     - PartField model for mesh segmentation
-    hunyuan2      - Hunyuan3D 2.0 models (geometry/texture/vae)
-    hunyuan2mini  - Hunyuan3D 2.0 mini models
     hunyuan21     - Hunyuan3D 2.1 models  
     trellis       - TRELLIS image-large model
     trellis-text  - TRELLIS text-xlarge model (optional)
-    holopart      - HoloPart model for part completion
+    trellis2      - TRELLIS.2-4B model (image-based only)
+    p3sam         - P3-SAM mesh segmentation model
     unirig        - UniRig model for auto-rigging
     partpacker    - PartPacker model
     partuv        - PartUV model
     fastmesh      - FastMesh model
+    ultrashape    - UltraShape model
     misc          - Miscellaneous models (RealESRGAN, DINOv2)
     all           - Download all models
 
 Examples:
     $0                                    # Download all models
-    $0 -m hunyuan2,trellis               # Download only Hunyuan3D 2.0 and TRELLIS
+    $0 -m trellis                         # Download only TRELLIS
     $0 -v                                # Verify all existing models
     $0 -m partfield -f                   # Force re-download PartField model
     $0 --list                           # List available models
@@ -203,32 +203,6 @@ download_partfield() {
         "PartField model"
 }
 
-# Function to download Hunyuan3D 2.0 models
-download_hunyuan2() {
-    print_info "========================================"
-    print_info "Downloading Hunyuan3D 2.0 Models"
-    print_info "========================================"
-    
-    local model_dir="pretrained/tencent/Hunyuan3D-2"
-    
-    if [ "$FORCE_DOWNLOAD" = false ] && verify_directory "$model_dir" 10; then
-        print_info "Hunyuan3D 2.0 models already exist and verified"
-        return 0
-    fi
-    
-    mkdir -p "$model_dir"
-    print_info "Downloading Hunyuan3D 2.0 (geometry/texture/vae)..."
-    print_info "Notice that the paint and delight models are ONLY needed when you need to texture generation feature"
-    if huggingface-cli download  tencent/Hunyuan3D-2 \
-        --include "hunyuan3d-dit-v2-0-turbo/*" "hunyuan3d-vae-v2-0-turbo/*" "hunyuan3d-paint-v2-0-turbo/*" "hunyuan3d-delight-v2-0/*" \
-        --local-dir "$model_dir"; then
-        print_success "Hunyuan3D 2.0 models downloaded successfully"
-    else
-        print_error "Failed to download Hunyuan3D 2.0 models"
-        return 1
-    fi
-}
-
 # Function to download Hunyuan3D 2.0 mini models
 download_hunyuan2mini() {
     print_info "========================================"
@@ -325,28 +299,61 @@ download_trellis_text() {
     fi
 }
 
-# Function to download HoloPart model
-download_holopart() {
+# Function to download TRELLIS.2 model
+download_trellis2() {
     print_info "========================================"
-    print_info "Downloading HoloPart Model"
+    print_info "Downloading TRELLIS.2-4B Model"
     print_info "========================================"
     
-    local model_dir="pretrained/HoloPart"
+    local model_dir="pretrained/TRELLIS.2/TRELLIS.2-4B"
     
-    if [ "$FORCE_DOWNLOAD" = false ] && verify_directory "$model_dir" 3; then
-        print_info "HoloPart model already exists and verified"
+    if [ "$FORCE_DOWNLOAD" = false ] && verify_directory "$model_dir" 5; then
+        print_info "TRELLIS.2-4B model already exists and verified"
         return 0
     fi
     
     mkdir -p "$model_dir"
-    print_info "Downloading HoloPart model..."
-    if huggingface-cli download  VAST-AI/HoloPart --local-dir "$model_dir"; then
-        print_success "HoloPart model downloaded successfully"
+    print_info "Downloading TRELLIS.2-4B model (image-based generation only)..."
+    if huggingface-cli download  microsoft/TRELLIS.2-4B --local-dir "$model_dir"; then
+        print_success "TRELLIS.2-4B model downloaded successfully"
     else
-        print_error "Failed to download HoloPart model"
+        print_error "Failed to download TRELLIS.2-4B model"
         return 1
     fi
 }
+
+# Function to download P3-SAM model
+download_p3sam() {
+    print_info "========================================"
+    print_info "Downloading P3-SAM Model"
+    print_info "========================================"
+    
+    local model_dir="pretrained/P3-SAM"
+    local checkpoint_path="$model_dir/last.ckpt"
+    
+    if [ "$FORCE_DOWNLOAD" = false ] && verify_file "$checkpoint_path" 50000000; then
+        print_info "P3-SAM model already exists and verified"
+        return 0
+    fi
+    
+    mkdir -p "$model_dir"
+    print_info "Downloading P3-SAM checkpoint..."
+    # Note: Replace with actual HuggingFace repo when available
+    # For now, provide instructions to download manually
+    print_warning "P3-SAM checkpoint download:"
+    print_info "Please download the checkpoint manually from the P3-SAM repository"
+    print_info "and place it at: $checkpoint_path"
+    print_info "Repository: https://github.com/Tencent/Hunyuan3D-Part"
+    
+    # Uncomment when HuggingFace model is available:
+    # if huggingface-cli download  hunyuan3d/P3-SAM --local-dir "$model_dir"; then
+    #     print_success "P3-SAM model downloaded successfully"
+    # else
+    #     print_error "Failed to download P3-SAM model"
+    #     return 1
+    # fi
+}
+
 
 # Function to download UniRig model
 download_unirig() {
@@ -451,6 +458,35 @@ download_partuv() {
     fi
 }
 
+# Function to download UltraShape model
+download_ultrashape() {
+    print_info "========================================"
+    print_info "Downloading UltraShape Model"
+    print_info "========================================"
+
+    local checkpoint_path="pretrained/UltraShape/ultrashape_v1.pt"
+    if [ "$FORCE_DOWNLOAD" = false ] && verify_file "$checkpoint_path" 100000000; then
+        print_info "UltraShape checkpoint already exists and verified"
+        return 0
+    fi
+
+    mkdir -p pretrained/UltraShape
+    print_info "Downloading UltraShape checkpoint..."
+    print_warning "UltraShape checkpoint download:"
+    print_info "Please download the checkpoint manually from the UltraShape repository"
+    print_info "and place it at: $checkpoint_path"
+    print_info "Repository: https://github.com/bytedance/UltraShape"
+    print_info "Or from HuggingFace (if available)"
+    
+    # Uncomment when HuggingFace model is available:
+    # if huggingface-cli download  bytedance/UltraShape --local-dir pretrained/UltraShape; then
+    #     print_success "UltraShape checkpoint downloaded successfully"
+    # else
+    #     print_error "Failed to download UltraShape checkpoint"
+    #     return 1
+    # fi
+}
+
 # Function to download miscellaneous models
 download_misc() {
     print_info "========================================"
@@ -511,9 +547,6 @@ verify_all_models() {
     
     print_info "Checking TRELLIS text-xlarge (optional)..."
     verify_directory "pretrained/TRELLIS/TRELLIS-text-xlarge" 5 || print_warning "TRELLIS text-xlarge not found (optional)"
-    
-    print_info "Checking HoloPart..."
-    verify_directory "pretrained/HoloPart" 3 || all_verified=false
     
     print_info "Checking UniRig..."
     verify_directory "pretrained/UniRig" 3 || all_verified=false
@@ -587,8 +620,11 @@ for model in "${MODELS_ARRAY[@]}"; do
         "trellis-text")
             download_trellis_text
             ;;
-        "holopart")
-            download_holopart
+        "trellis2")
+            download_trellis2
+            ;;
+        "p3sam")
+            download_p3sam
             ;;
         "unirig")
             download_unirig
@@ -602,21 +638,25 @@ for model in "${MODELS_ARRAY[@]}"; do
         "fastmesh")
             download_fastmesh
             ;;
+        "ultrashape")
+            download_ultrashape
+            ;;
         "misc")
             download_misc
             ;;
         "all")
             download_partfield
-            download_hunyuan2
             download_hunyuan2mini
             download_hunyuan21
             download_trellis
             download_trellis_text
-            download_holopart
+            download_trellis2
+            download_p3sam
             download_unirig
             download_partpacker
             download_partuv
             download_fastmesh
+            download_ultrashape
             download_misc
             ;;
         *)

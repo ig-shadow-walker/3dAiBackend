@@ -81,7 +81,6 @@ pretrained/FastMesh*
 pretrained/PartPacker
 pretrained/UniRig
 pretrained/TRELLIS
-pretrained/HoloPart
 
 # Docker files
 Dockerfile*

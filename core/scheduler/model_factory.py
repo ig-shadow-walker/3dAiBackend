@@ -37,19 +37,16 @@ class ModelFactory:
             "module": "adapters.trellis_adapter",
             "class": "TrellisImageMeshPaintingAdapter",
         },
+        # TRELLIS.2 adapters (image-only, no text support)
+        "trellis2_image_to_textured_mesh": {
+            "module": "adapters.trellis2_adapter",
+            "class": "Trellis2ImageToTexturedMeshAdapter",
+        },
+        "trellis2_image_mesh_painting": {
+            "module": "adapters.trellis2_adapter",
+            "class": "Trellis2ImageMeshPaintingAdapter",
+        },
         # Hunyuan3D adapters
-        "hunyuan3dv20_image_to_raw_mesh": {
-            "module": "adapters.hunyuan3d_adapter_v20",
-            "class": "Hunyuan3DV20ImageToRawMeshAdapter",
-        },
-        "hunyuan3dv20_image_to_textured_mesh": {
-            "module": "adapters.hunyuan3d_adapter_v20",
-            "class": "Hunyuan3DV20ImageToTexturedMeshAdapter",
-        },
-        "hunyuan3dv20_image_mesh_painting": {
-            "module": "adapters.hunyuan3d_adapter_v20",
-            "class": "Hunyuan3DV20ImageMeshPaintingAdapter",
-        },
         "hunyuan3dv21_image_to_raw_mesh": {
             "module": "adapters.hunyuan3d_adapter_v21",
             "class": "Hunyuan3DV21ImageToRawMeshAdapter",
@@ -67,13 +64,13 @@ class ModelFactory:
             "module": "adapters.partfield_adapter",
             "class": "PartFieldSegmentationAdapter",
         },
-        # HoloPart adapters
-        "holopart_part_completion": {
-            "module": "adapters.holopart_adapter",
-            "class": "HoloPartCompletionAdapter",
+        # P3-SAM adapters
+        "p3sam_mesh_segmentation": {
+            "module": "adapters.p3sam_adapter",
+            "class": "P3SAMSegmentationAdapter",
         },
         # PartPacker adapters
-        "partpacker_part_packing": {
+        "partpacker_image_to_raw_mesh": {
             "module": "adapters.partpacker_adapter",
             "class": "PartPackerImageToRawMeshAdapter",
         },
@@ -95,6 +92,20 @@ class ModelFactory:
         "partuv_uv_unwrapping": {
             "module": "adapters.partuv_adapter",
             "class": "PartUVUnwrappingAdapter",
+        },
+        # UltraShape adapters
+        "ultrashape_image_to_raw_mesh": {
+            "module": "adapters.ultrashape_adapter",
+            "class": "UltraShapeImageToRawMeshAdapter",
+        },
+        # VoxHammer adapters
+        "voxhammer_text_mesh_editing": {
+            "module": "adapters.voxhammer_adapter",
+            "class": "VoxHammerTextMeshEditingAdapter",
+        },
+        "voxhammer_image_mesh_editing": {
+            "module": "adapters.voxhammer_adapter",
+            "class": "VoxHammerImageMeshEditingAdapter",
         },
     }
 
@@ -376,27 +387,6 @@ def get_default_model_configs() -> Dict[str, Dict[str, Any]]:
         }
     )
 
-    # Hunyuan3D2.0 models
-    configs.update(
-        {
-            "hunyuan3dv20_image_to_raw_mesh": ModelFactory.create_model_config(
-                model_id="hunyuan3dv20_image_to_raw_mesh",
-                feature_type="image_to_raw_mesh",
-                vram_requirement=5120,
-            ),
-            "hunyuan3dv20_image_to_textured_mesh": ModelFactory.create_model_config(
-                model_id="hunyuan3dv20_image_to_textured_mesh",
-                feature_type="image_to_textured_mesh",
-                vram_requirement=14336,
-            ),
-            "hunyuan3dv20_image_mesh_painting": ModelFactory.create_model_config(
-                model_id="hunyuan3dv20_image_mesh_painting",
-                feature_type="image_mesh_painting",
-                vram_requirement=11264,
-            ),
-        }
-    )
-
     # Hunyuan3D2.1 models
     configs.update(
         {
@@ -429,23 +419,12 @@ def get_default_model_configs() -> Dict[str, Dict[str, Any]]:
         }
     )
 
-    # HoloPart models
-    configs.update(
-        {
-            "holopart_part_completion": ModelFactory.create_model_config(
-                model_id="holopart_part_completion",
-                feature_type="part_completion",
-                vram_requirement=10240,  # 10GB
-            )
-        }
-    )
-
     # PartPacker models
     configs.update(
         {
-            "partpacker_part_packing": ModelFactory.create_model_config(
-                model_id="partpacker_part_packing",
-                feature_type="part_packing",
+            "partpacker_image_to_raw_mesh": ModelFactory.create_model_config(
+                model_id="partpacker_image_to_raw_mesh",
+                feature_type="image_to_raw_mesh",
                 vram_requirement=10240,  # 10GB
             )
         }
@@ -486,6 +465,33 @@ def get_default_model_configs() -> Dict[str, Dict[str, Any]]:
                 feature_type="uv_unwrapping",
                 vram_requirement=6144,  # 6GB
             )
+        }
+    )
+
+    # UltraShape models
+    configs.update(
+        {
+            "ultrashape_image_to_raw_mesh": ModelFactory.create_model_config(
+                model_id="ultrashape_image_to_raw_mesh",
+                feature_type="image_to_raw_mesh",
+                vram_requirement=20480,  # 20GB
+            )
+        }
+    )
+
+    # VoxHammer models
+    configs.update(
+        {
+            "voxhammer_text_mesh_editing": ModelFactory.create_model_config(
+                model_id="voxhammer_text_mesh_editing",
+                feature_type="text_mesh_editing",
+                vram_requirement=40960,  # 40GB
+            ),
+            "voxhammer_image_mesh_editing": ModelFactory.create_model_config(
+                model_id="voxhammer_image_mesh_editing",
+                feature_type="image_mesh_editing",
+                vram_requirement=40960,  # 40GB
+            ),
         }
     )
 

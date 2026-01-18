@@ -13,12 +13,12 @@ from typing import Any, Dict, List, Optional
 
 import torch
 
+from utils.unirig_utils import InferenceConfig, UniRigInferenceEngine
 from core.models.base import ModelStatus
 from core.models.rig_models import AutoRigModel
-from utils.file_utils import OutputPathGenerator
-from utils.format_utils import fbx_to_glb
-from utils.mesh_utils import MeshProcessor
-from utils.unirig_utils import InferenceConfig, UniRigInferenceEngine
+from core.utils.file_utils import OutputPathGenerator
+from core.utils.format_utils import fbx_to_glb
+from core.utils.mesh_utils import MeshProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -329,3 +329,35 @@ class UniRigAdapter(AutoRigModel):
             }
         )
         return info
+    
+    def get_parameter_schema(self) -> Dict[str, Any]:
+        """
+        Return JSON Schema describing model-specific parameters.
+        
+        Returns:
+            Parameter schema dictionary
+        """
+        return {
+            "parameters": {
+                "rig_mode": {
+                    "type": "string",
+                    "description": "Rigging mode: skeleton only, skin weights only, or full pipeline",
+                    "default": "full",
+                    "enum": ["skeleton", "skin", "full"],
+                    "required": False
+                },
+                "seed": {
+                    "type": "integer",
+                    "description": "Random seed for reproducibility",
+                    "default": None,
+                    "minimum": 0,
+                    "required": False
+                },
+                "with_skinning": {
+                    "type": "boolean",
+                    "description": "Whether to apply skinning weights (only for full mode)",
+                    "default": True,
+                    "required": False
+                }
+            }
+        }

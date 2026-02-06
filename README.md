@@ -10,6 +10,9 @@ A **self-hosted, comprehensive and scalable** FastAPI backend server framework f
 The system is powered with GPU resource management, concurrent and VRAM-aware GPU scheduling. It can be used together with **Open3DStudio, an open-source replicate of TripoStudio**.
 
 ## CHANGELOG
+#### Updates 02.05 
+* Add support for [Runpod](https://console.runpod.io/deploy?template=bb0j8jta3y&ref=djra5vej), it takes only a single click to deploy this backend by yourself! Check the [RunPod Section](https://github.com/FishWoWater/3DAIGC-API/tree/main?tab=readme-ov-file#docker-recommendedj) for more details.
+
 #### Updates 01.17 
 * Add support for [TRELLIS.2](https://github.com/microsoft/TRELLIS.2) and [UltraShape1.0](https://github.com/PKU-YuanGroup/UltraShape-1.0) for the feature of mesh generation.
 * Add support for [P3SAM](https://github.com/Tencent-Hunyuan/Hunyuan3D-Part/tree/main/P3-SAM) for higher quality 3D-native mesh segmentation.
@@ -87,6 +90,18 @@ The VRAM requirement is from the pytest results, tested on a single 4090 GPU.
 
 
 ## Quick Start
+### Runpod (Recommended)
+Use the cloud compute provided by [RunPod](https://www.runpod.io) to deploy your own backend with **a single click**. I have provided the runpod template [here](https://console.runpod.io/deploy?template=bb0j8jta3y&ref=djra5vej)
+
+How-To: Select the template --> Select a machine based on your use-case --> Deploy On-Demand. After runpod setups the template, you can see a http service marked as **ready**. Then copy the url and setup in the Open3DStudio's settings tab.
+
+![runpod_demo1](./assets/runpod_demo1.png)
+![runpod_demo2](./assets/runpod_demo2.png)
+
+If desired, you can setup your huggingface token via the environment variable `HUGGIINGFACE_TOKEN` for the downloading of some gated models(e.g. DINO-V3, RemBG). And you can setup `P3D_USER_AUTH_ENABLED` to enable authentification.
+
+If you don't have a RunPod account yet, you can use my [Referral Link](https://runpod.io?ref=djra5vej) to support this project :)
+
 ### Docker (Recommended)
 ```shell
 # start up the service in the background

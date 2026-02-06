@@ -417,6 +417,7 @@ test_results
 
 # pretrained models
 pretrained
+pretrained_all
 
 # legacy code and misc 
 legacy 

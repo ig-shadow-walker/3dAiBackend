@@ -59,7 +59,7 @@ image_to_textured_mesh:
     max_workers: 1
 
   trellis2_image_to_textured_mesh:
-    vram_requirement: 12288  # MB (12GB, TRELLIS.2)
+    vram_requirement: 23552  # MB (23GB, TRELLIS.2)
     supported_inputs: ["image"]
     supported_outputs: ["glb", "obj"]
     model_path: "thirdparty/TRELLIS.2"
@@ -85,7 +85,7 @@ image_mesh_painting:
     max_workers: 1
 
   trellis2_image_mesh_painting:
-    vram_requirement: 12288  # MB (12GB, TRELLIS.2)
+    vram_requirement: 23552   # MB (23GB, TRELLIS.2)
     supported_inputs: ["mesh", "image"]
     supported_outputs: ["glb", "obj"]
     model_path: "thirdparty/TRELLIS.2"

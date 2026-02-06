@@ -74,12 +74,16 @@ data/
 uploads/
 models/
 
-# Pretrained models directory (too large, should be downloaded or mounted)
-pretrained/tencent
-pretrained/dinov2-giant
+pretrained_all
+# Pretrained models directory 
+# We pack some small models inside the docker for convenient use, some others are too large, should be downloaded or mounted
 pretrained/FastMesh*
+pretrained/tencent
 pretrained/PartPacker
+pretrained/VoxHammer
+pretrained/dinov2-giant
 pretrained/UniRig
+pretrained/UltraShape
 pretrained/TRELLIS
 
 # Docker files

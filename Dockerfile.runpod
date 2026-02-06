@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for 3DAIGC-API
+# Multi-stage Dockerfile for 3DAIGC-API (RunPod Optimized)
 FROM nvidia/cuda:12.4.0-devel-ubuntu20.04 AS base
 
 # Set environment variables
@@ -7,11 +7,7 @@ ENV PYTHONUNBUFFERED=1
 ENV CUDA_HOME=/usr/local/cuda
 ENV PATH=${CUDA_HOME}/bin:${PATH}
 ENV LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}
-# Set CUDA architectures for compilation (needed for building CUDA extensions without GPU present)
 ENV TORCH_CUDA_ARCH_LIST="6.0 6.1 7.0 7.5 8.0 8.6 8.9 9.0+PTX"
-
-# Note: nvidia-smi cannot run during build time, only at runtime
-# RUN nvidia-smi
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -37,8 +33,9 @@ RUN apt-get update && apt-get install -y \
     libxi6 \
     libxkbcommon-dev \
     xvfb \
+    redis-server \
+    supervisor \
     && rm -rf /var/lib/apt/lists/*
-
 
 # Install Miniconda
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh && \
@@ -92,17 +89,13 @@ RUN pip install mesh2sdf tetgen pymeshlab plyfile einops libigl polyscope potpou
 RUN pip install /app/assets/wheels/torch_scatter-2.1.2+pt26cu124-cp310-cp310-linux_x86_64.whl --no-deps
 RUN pip install /app/assets/wheels/torch_sparse-0.6.18+pt26cu124-cp310-cp310-linux_x86_64.whl --no-deps
 RUN pip install /app/assets/wheels/torch_cluster-1.6.3+pt26cu124-cp310-cp310-linux_x86_64.whl --no-deps
-# RUN pip install torch-scatter torch_cluster -f https://data.pyg.org/whl/torch-2.6.0+cu124.html
 
 # Install Hunyuan3D 2.1 dependencies
 WORKDIR /app/thirdparty/Hunyuan3D-2.1
 RUN cd hy3dpaint/custom_rasterizer && pip install -e . --no-build-isolation
-
-# Build differentiable renderer for Hunyuan3D 2.1
 WORKDIR /app/thirdparty/Hunyuan3D-2.1/hy3dpaint/DifferentiableRenderer
+RUN pip install pybind11==3.0.1
 RUN bash compile_mesh_painter.sh
-
-# Install Hunyuan3D 2.1 requirements
 WORKDIR /app/thirdparty/Hunyuan3D-2.1
 RUN pip install -r requirements-inference.txt
 
@@ -118,7 +111,7 @@ RUN pip install meshiki kiui fpsample pymcubes einops
 # Install PartUV dependencies
 RUN pip install seaborn partuv blenderproc
 
-# Install P3-SAM (Hunyuan3D-Part) dependencies
+# Install P3-SAM dependencies
 WORKDIR /app/thirdparty/Hunyuan3DPart/P3SAM
 RUN pip install numba scikit-learn fpsample
 
@@ -139,14 +132,18 @@ RUN pip install pysdf sentencepiece
 WORKDIR /app
 RUN pip install -r requirements.txt
 RUN pip install -r requirements-test.txt
-RUN pip install huggingface_hub
+RUN pip install huggingface_hub vtk pyvista numpy==1.24.3
 
 # Create necessary directories
 RUN mkdir -p /app/uploads /app/data /app/logs /app/outputs
 
+# Setup Supervisor
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
 # Set environment variables for runtime
-ENV PYTHONPATH="/app:${PYTHONPATH}"
+ENV PYTHONPATH="/app"
 ENV CONDA_DEFAULT_ENV=3daigc-api
+ENV ENVIRONMENT=production
 
 ENV http_proxy=""
 ENV https_proxy=""
@@ -158,6 +155,5 @@ ENV NO_PROXY=""
 # Expose port for FastAPI
 EXPOSE 7842
 
-# Health check
-# HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-#   CMD python -c "import torch; assert torch.cuda.is_available()" || exit 1
+# Start Supervisor with cleanup of stale files
+CMD ["/bin/bash", "-c", "rm -f /var/run/supervisord.pid /var/run/supervisor.sock && exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf"]

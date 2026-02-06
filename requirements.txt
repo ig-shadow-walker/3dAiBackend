@@ -55,3 +55,7 @@ transformers==4.57.3
 pyyaml
 realesrgan==0.3.0
 peft==0.17.1
+
+# extra 
+pyvista 
+vtk

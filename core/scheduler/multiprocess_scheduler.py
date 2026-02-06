@@ -122,6 +122,17 @@ def model_worker_process(
     try:
         # Set up process environment
         logger.info(f"Starting worker process {worker_id} on GPU {gpu_id}")
+        # At the very beginning we try to login huggingface for the download of some special models
+        import os
+        from huggingface_hub import InferenceClient, login
+
+        hf_token = os.getenv("HUGGINGFACE_TOKEN", None)
+        if hf_token is not None:
+            try:
+                login(token=hf_token, add_to_git_credential=False)
+                logger.info("Login to huggingface successfully.")
+            except Exception as e:
+                logger.warning("Failed to login to huggingface, possibly invalid token!")
 
         # Set CUDA device first thing
         if torch.cuda.is_available():

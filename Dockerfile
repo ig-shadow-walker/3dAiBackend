@@ -93,10 +93,7 @@ RUN git clone https://github.com/autonomousvision/mip-splatting.git /tmp/extensi
 WORKDIR /app/thirdparty/PartField
 RUN pip install lightning==2.2 h5py yacs trimesh scikit-image loguru boto3
 RUN pip install mesh2sdf tetgen pymeshlab plyfile einops libigl polyscope potpourri3d simple_parsing arrgh open3d psutil
-RUN pip install /app/assets/wheels/torch_scatter-2.1.2+pt26cu124-cp310-cp310-linux_x86_64.whl --no-deps
-RUN pip install /app/assets/wheels/torch_sparse-0.6.18+pt26cu124-cp310-cp310-linux_x86_64.whl --no-deps
-RUN pip install /app/assets/wheels/torch_cluster-1.6.3+pt26cu124-cp310-cp310-linux_x86_64.whl --no-deps
-# RUN pip install torch-scatter torch_cluster -f https://data.pyg.org/whl/torch-2.6.0+cu124.html
+RUN pip install torch-scatter torch-sparse torch-cluster -f https://data.pyg.org/whl/torch-2.6.0+cu124.html --no-cache-dir
 
 # Install Hunyuan3D 2.1 dependencies
 WORKDIR /app/thirdparty/Hunyuan3D-2.1

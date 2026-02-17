@@ -28,8 +28,8 @@ SUPPORTED_TEXTURE_FORMATS = [".jpg", ".jpeg", ".png", ".tga", ".exr", ".hdr"]
 
 # Validation limits
 MAX_IMAGE_RESOLUTION = (2048, 2048)  # Maximum image resolution
-MAX_MESH_VERTICES = 210000  # Maximum number of vertices
-MAX_MESH_FACES = 210000  # Maximum number of faces
+MAX_MESH_VERTICES = 1_000_000  # Maximum number of vertices (increase if needed for large meshes)
+MAX_MESH_FACES = 1_000_000  # Maximum number of faces
 
 # MIME type mappings
 MIME_TYPE_MAPPING = {

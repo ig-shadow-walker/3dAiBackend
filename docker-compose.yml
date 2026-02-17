@@ -27,6 +27,7 @@ services:
       - ./data:/app/data
       - ./models:/app/models
       - ./pretrained:/app/pretrained:ro
+      - ./uploads:/app/uploads
       - ./logs:/app/logs
       - ./config:/app/config:ro
     environment:

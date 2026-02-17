@@ -37,6 +37,8 @@ services:
       - TORCH_CUDA_ARCH_LIST="6.0 6.1 7.0 7.5 8.0 8.6 8.9"
       - P3D_USER_AUTH_ENABLED=${P3D_USER_AUTH_ENABLED:-false}
       - P3D_DEBUG=${P3D_DEBUG:-false}
+      - HF_TOKEN=${HF_TOKEN:-}
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
     runtime: nvidia
     deploy:
       resources:
@@ -81,6 +83,8 @@ services:
       - TORCH_CUDA_ARCH_LIST="6.0 6.1 7.0 7.5 8.0 8.6 8.9"
       - P3D_USER_AUTH_ENABLED=${P3D_USER_AUTH_ENABLED:-false}
       - P3D_DEBUG=${P3D_DEBUG:-false}
+      - HF_TOKEN=${HF_TOKEN:-}
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
     runtime: nvidia
     deploy:
       resources:

@@ -435,6 +435,10 @@ data/
 uploads/
 test_outputs/
 
+# Local env (secrets - do not commit)
+.env
+.env.local
+
 # some wheels are too large to put there 
 assets/wheels/flash_attn*
 assets/wheels/torch*

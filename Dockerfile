@@ -81,6 +81,8 @@ RUN mkdir -p /tmp/build-bin && \
     printf '#!/bin/bash\nexit 0\n' > /tmp/build-bin/nvidia-smi && \
     chmod +x /tmp/build-bin/nvidia-smi && \
     PATH="/tmp/build-bin:$PATH" bash setup.sh --basic --flash-attn --nvdiffrast --nvdiffrec --cumesh --o-voxel --flexgemm
+# Ensure flash-attn is installed (setup.sh install may fail during build without GPU; use pre-built wheel)
+RUN pip install https://fishwowater.oss-cn-shenzhen.aliyuncs.com/flash_attn-2.7.3-cp310-cp310-linux_x86_64.whl --no-deps
 RUN pip install kaolin -f https://nvidia-kaolin.s3.us-east-2.amazonaws.com/torch-2.6.0_cu124.html
 
 # Install TRELLIS(v1) requirements on top of TRELLIS.2

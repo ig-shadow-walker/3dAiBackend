@@ -28,6 +28,7 @@ services:
       - ./models:/app/models
       - ./pretrained:/app/pretrained:ro
       - ./uploads:/app/uploads
+      - ./outputs:/app/outputs
       - ./logs:/app/logs
       - ./config:/app/config:ro
     environment:
@@ -74,6 +75,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./uploads:/app/uploads
+      - ./outputs:/app/outputs
       - ./logs:/app/logs
       - ./config:/app/config:ro
     environment:

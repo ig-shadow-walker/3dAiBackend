@@ -76,7 +76,10 @@ ENV no_proxy=$no_proxy
 
 # Install TRELLIS.2 dependencies
 # setup.sh requires nvidia-smi/rocminfo to detect GPU; no GPU available during build, so use a stub
+# CuMesh clone is commented out in setup.sh; clone it explicitly before running setup
 WORKDIR /app/thirdparty/TRELLIS.2
+RUN mkdir -p ./tmp/extensions && \
+    git clone https://github.com/FishWoWater/CuMesh.git ./tmp/extensions/CuMesh --recursive
 RUN mkdir -p /tmp/build-bin && \
     printf '#!/bin/bash\nexit 0\n' > /tmp/build-bin/nvidia-smi && \
     chmod +x /tmp/build-bin/nvidia-smi && \
